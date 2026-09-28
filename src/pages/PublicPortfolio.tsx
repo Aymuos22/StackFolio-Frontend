@@ -1,51 +1,91 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowUpRight, Github, Linkedin, Mail, Phone } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import { ArrowUpRight, Github, Linkedin, Mail, Phone, Zap } from "lucide-react";
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getPublicPortfolio } from "../api/portfolio";
 import EmptyState from "../components/EmptyState";
-import Spinner from "../components/Spinner";
 import { apiErrorMessage, initials, orderByDisplay } from "../lib/utils";
 import type { Portfolio } from "../types/portfolio";
 
-function SocialLink({ href, children, icon }: { href?: string; children: ReactNode; icon: ReactNode }) {
+const slam = {
+  hidden: { opacity: 0, scale: 1.12, rotate: -2, y: 40 },
+  show: {
+    opacity: 1,
+    scale: 1,
+    rotate: 0,
+    y: 0,
+    transition: { type: "spring" as const, stiffness: 260, damping: 18 },
+  },
+};
+
+const slideSkew = {
+  hidden: { opacity: 0, x: -60, skewX: -8 },
+  show: {
+    opacity: 1,
+    x: 0,
+    skewX: 0,
+    transition: { type: "spring" as const, stiffness: 200, damping: 20 },
+  },
+};
+
+function ActionChip({ href, children, icon }: { href?: string; children: ReactNode; icon: ReactNode }) {
   if (!href) return null;
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white/70 px-4 py-2 text-sm font-medium text-[var(--pp-ink)] backdrop-blur transition hover:border-black/20 hover:bg-white"
-    >
+    <a href={href} target="_blank" rel="noreferrer" className="comic-burst inline-flex items-center gap-2 px-4 py-2 font-comic-body text-sm font-bold uppercase tracking-wide">
       {icon}
       {children}
     </a>
   );
 }
 
-function FadeIn({
+function PanelIn({
   children,
   className,
   delay = 0,
+  from = "up",
 }: {
   children: ReactNode;
   className?: string;
   delay?: number;
+  from?: "up" | "left" | "right" | "slam";
 }) {
   const reduceMotion = useReducedMotion();
   if (reduceMotion) return <div className={className}>{children}</div>;
 
+  const initial =
+    from === "slam"
+      ? { opacity: 0, scale: 1.2, rotate: -3 }
+      : from === "left"
+        ? { opacity: 0, x: -80, rotate: -2 }
+        : from === "right"
+          ? { opacity: 0, x: 80, rotate: 2 }
+          : { opacity: 0, y: 50, rotate: -1 };
+
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.25 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay }}
+      initial={initial}
+      whileInView={{ opacity: 1, x: 0, y: 0, scale: 1, rotate: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ type: "spring", stiffness: 220, damping: 18, delay }}
     >
       {children}
     </motion.div>
+  );
+}
+
+function SectionStamp({ label, tone = "pink" }: { label: string; tone?: "pink" | "cyan" | "yellow" }) {
+  const bg =
+    tone === "cyan" ? "bg-comic-cyan" : tone === "yellow" ? "bg-comic-yellow" : "bg-comic-pink text-white";
+  return (
+    <div className="mb-8 flex items-center gap-4">
+      <span className={`comic-section inline-block -rotate-2 border-4 border-comic-ink px-4 py-2 text-2xl sm:text-3xl ${bg} shadow-comic`}>
+        {label}
+      </span>
+      <span className="hidden h-1 flex-1 bg-comic-ink sm:block" aria-hidden="true" />
+      <Zap className="hidden h-7 w-7 fill-comic-yellow text-comic-ink sm:block" aria-hidden="true" />
+    </div>
   );
 }
 
@@ -99,22 +139,22 @@ export default function PublicPortfolio() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#fafafa]">
-        <Spinner label="Loading portfolio" />
+      <main className="comic-page flex min-h-screen items-center justify-center">
+        <div className="comic-caption px-6 py-4 font-comic text-3xl">Loading…</div>
       </main>
     );
   }
 
   if (error || !portfolio) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#fafafa] px-4">
+      <main className="comic-page flex min-h-screen items-center justify-center px-4">
         <section className="w-full max-w-xl">
           <EmptyState
             title="Portfolio unavailable"
             body={error || "This public portfolio could not be found."}
             action={
-              <Link className="font-semibold text-slate-950 hover:underline" to="/">
-                Go to Stackfolio
+              <Link className="font-comic text-2xl text-comic-pink underline" to="/">
+                Back to Stackfolio
               </Link>
             }
           />
@@ -123,313 +163,321 @@ export default function PublicPortfolio() {
     );
   }
 
-  const primary = portfolio.primaryColor || "#2563eb";
-  const secondary = portfolio.secondaryColor || "#0f172a";
+  const primary = portfolio.primaryColor || "#ff2a6d";
   const projects = orderByDisplay(portfolio.projects);
   const experiences = orderByDisplay(portfolio.experiences);
   const certifications = orderByDisplay(portfolio.certifications);
   const customLinks = orderByDisplay(portfolio.customLinks);
+  const firstName = portfolio.fullName.split(" ")[0] ?? portfolio.fullName;
 
   return (
-    <main
-      className="min-h-screen bg-[#fafafa] font-sans text-[var(--pp-ink)] antialiased"
-      style={
-        {
-          "--pp-accent": primary,
-          "--pp-ink": secondary,
-        } as CSSProperties
-      }
-    >
-      {/* Soft atmospheric background — not flat, not theatrical */}
-      <div
-        className="pointer-events-none fixed inset-0 -z-10"
-        style={{
-          background: `
-            radial-gradient(ellipse 90% 55% at 10% -10%, ${primary}18, transparent 55%),
-            radial-gradient(ellipse 70% 45% at 100% 0%, ${primary}10, transparent 50%),
-            linear-gradient(180deg, #ffffff 0%, #fafafa 40%, #f4f4f5 100%)
-          `,
-        }}
-        aria-hidden="true"
-      />
+    <main className="comic-page comic-ink-bleed min-h-screen">
+      <div className="comic-speedlines pointer-events-none fixed inset-0 -z-0 opacity-60" aria-hidden="true" />
 
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5 sm:px-8">
-        <p className="font-display text-sm font-semibold tracking-tight">Stackfolio</p>
-        {customLinks[0] ? (
-          <a
-            href={customLinks[0].url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-sm font-medium text-zinc-500 transition hover:text-[var(--pp-ink)]"
-          >
-            {customLinks[0].label}
-            <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-          </a>
-        ) : null}
+      {/* Masthead */}
+      <header className="relative z-10 border-b-4 border-comic-ink bg-comic-ink text-comic-cream">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <p className="font-comic text-xl tracking-wider text-comic-yellow sm:text-2xl">STACKFOLIO COMICS</p>
+          <p className="font-comic-body text-xs font-bold uppercase tracking-[0.25em] text-comic-cyan">
+            Issue · {slug} · Vol. 1
+          </p>
+        </div>
       </header>
 
-      {/* Hero */}
-      <section className="mx-auto max-w-5xl px-5 pb-16 pt-8 sm:px-8 sm:pb-24 sm:pt-14">
-        <motion.div
-          className="flex flex-col gap-8 sm:flex-row sm:items-end sm:gap-12"
-          initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div className="shrink-0">
-            {portfolio.profileImageUrl ? (
-              <motion.img
-                src={portfolio.profileImageUrl}
-                alt={portfolio.fullName}
-                className="h-28 w-28 rounded-2xl object-cover shadow-soft ring-1 ring-black/5 sm:h-36 sm:w-36"
-                initial={reduceMotion ? false : { opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              />
-            ) : (
-              <div
-                className="flex h-28 w-28 items-center justify-center rounded-2xl text-3xl font-bold text-white shadow-soft sm:h-36 sm:w-36 sm:text-4xl"
-                style={{ backgroundColor: primary }}
-              >
-                {initials(portfolio.fullName)}
-              </div>
-            )}
-          </div>
+      {/* Splash page hero */}
+      <section className="relative z-10 overflow-hidden border-b-4 border-comic-ink">
+        <div
+          className="absolute inset-0 opacity-90"
+          style={{
+            background: `
+              linear-gradient(125deg, #1b3b6f 0%, #0a0a0a 42%, #7b2cbf 100%),
+              radial-gradient(circle at 80% 20%, ${primary}88, transparent 40%)
+            `,
+          }}
+          aria-hidden="true"
+        />
+        <div className="comic-halftone-overlay absolute inset-0 opacity-50" aria-hidden="true" />
 
-          <div className="min-w-0 flex-1">
-            <motion.h1
-              className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl"
-              initial={reduceMotion ? false : { opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-            >
+        <div className="relative mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-10 lg:py-16">
+          <motion.div
+            className="order-2 lg:order-1"
+            variants={reduceMotion ? undefined : { hidden: {}, show: { transition: { staggerChildren: 0.12 } } }}
+            initial="hidden"
+            animate="show"
+          >
+            <motion.div variants={slideSkew} className="comic-caption mb-5 inline-block -rotate-2 px-3 py-1 text-sm font-bold uppercase">
+              <span className="mr-2 inline-block rounded bg-comic-ink px-2 py-0.5 font-comic text-comic-yellow">NEW</span>
+              Origin story online
+            </motion.div>
+
+            <motion.h1 variants={slam} className="comic-title comic-glitch text-[clamp(3.5rem,12vw,7.5rem)] text-white">
               {portfolio.fullName}
             </motion.h1>
 
             {portfolio.summary ? (
-              <motion.p
-                className="mt-4 max-w-2xl text-base leading-7 text-zinc-600 sm:text-lg sm:leading-8"
-                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.55, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
-              >
+              <motion.div variants={slideSkew} className="comic-speech relative mt-8 max-w-xl p-5 font-comic-body text-base leading-7 sm:text-lg">
                 {portfolio.summary}
-              </motion.p>
+              </motion.div>
             ) : null}
 
-            <motion.div
-              className="mt-7 flex flex-wrap gap-2.5"
-              initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <SocialLink href={portfolio.publicEmail ? `mailto:${portfolio.publicEmail}` : undefined} icon={<Mail className="h-4 w-4" />}>
+            <motion.div variants={slideSkew} className="mt-8 flex flex-wrap gap-3">
+              <ActionChip href={portfolio.publicEmail ? `mailto:${portfolio.publicEmail}` : undefined} icon={<Mail className="h-4 w-4" />}>
                 Email
-              </SocialLink>
-              <SocialLink href={portfolio.githubUrl} icon={<Github className="h-4 w-4" />}>
+              </ActionChip>
+              <ActionChip href={portfolio.githubUrl} icon={<Github className="h-4 w-4" />}>
                 GitHub
-              </SocialLink>
-              <SocialLink href={portfolio.linkedinUrl} icon={<Linkedin className="h-4 w-4" />}>
+              </ActionChip>
+              <ActionChip href={portfolio.linkedinUrl} icon={<Linkedin className="h-4 w-4" />}>
                 LinkedIn
-              </SocialLink>
-              <SocialLink href={portfolio.phone ? `tel:${portfolio.phone}` : undefined} icon={<Phone className="h-4 w-4" />}>
+              </ActionChip>
+              <ActionChip href={portfolio.phone ? `tel:${portfolio.phone}` : undefined} icon={<Phone className="h-4 w-4" />}>
                 Call
-              </SocialLink>
+              </ActionChip>
             </motion.div>
-          </div>
-        </motion.div>
+          </motion.div>
+
+          <motion.div
+            className="order-1 mx-auto w-full max-w-md lg:order-2 lg:mx-0 lg:justify-self-end"
+            initial={reduceMotion ? false : { opacity: 0, rotate: 8, scale: 0.85, y: 30 }}
+            animate={{ opacity: 1, rotate: 3, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 180, damping: 14, delay: 0.15 }}
+          >
+            <div className="comic-panel comic-panel-pink comic-jagged relative overflow-hidden">
+              {portfolio.profileImageUrl ? (
+                <img src={portfolio.profileImageUrl} alt={portfolio.fullName} className="aspect-[4/5] w-full object-cover" />
+              ) : (
+                <div
+                  className="flex aspect-[4/5] items-center justify-center text-7xl font-comic text-white sm:text-8xl"
+                  style={{ background: `linear-gradient(145deg, ${primary}, #1b3b6f)` }}
+                >
+                  {initials(portfolio.fullName)}
+                </div>
+              )}
+              <div className="comic-halftone-overlay absolute inset-0" aria-hidden="true" />
+              <div className="absolute bottom-3 left-3 right-3">
+                <div className="comic-caption px-3 py-2 text-center text-sm font-bold uppercase tracking-wide">
+                  starring {firstName}
+                </div>
+              </div>
+              <motion.span
+                className="absolute -left-3 -top-3 rotate-[-12deg] border-4 border-comic-ink bg-comic-cyan px-3 py-1 font-comic text-2xl shadow-comic"
+                animate={reduceMotion ? undefined : { rotate: [-12, -8, -12], y: [0, -4, 0] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+              >
+                POW!
+              </motion.span>
+            </div>
+          </motion.div>
+        </div>
       </section>
 
-      <div className="mx-auto max-w-5xl space-y-20 px-5 pb-24 sm:px-8 sm:space-y-28">
-        {/* Projects */}
+      <div className="relative z-10 mx-auto max-w-6xl space-y-16 px-4 py-12 sm:px-6 sm:py-16">
+        {/* Projects as comic panels */}
         <section>
-          <FadeIn>
-            <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Projects</h2>
-            <p className="mt-2 text-sm text-zinc-500">Selected work and experiments.</p>
-          </FadeIn>
+          <PanelIn from="left">
+            <SectionStamp label="Selected Missions" tone="pink" />
+          </PanelIn>
 
-          <div className="mt-8 space-y-6">
-            {projects.length === 0 ? (
-              <EmptyState title="No projects yet" body="Projects will appear here when they are published." />
-            ) : (
-              projects.map((project, index) => (
-                <FadeIn key={project.id} delay={index * 0.04}>
-                  <article className="overflow-hidden rounded-2xl border border-black/[0.06] bg-white/80 shadow-sm backdrop-blur transition hover:shadow-soft">
-                    <div className={`grid gap-0 ${project.imageUrl ? "md:grid-cols-[1.1fr_1fr]" : ""}`}>
+          {projects.length === 0 ? (
+            <EmptyState title="No projects yet" body="Projects will appear here when they are published." />
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2">
+              {projects.map((project, index) => (
+                <PanelIn key={project.id} delay={index * 0.06} from={index % 2 === 0 ? "left" : "right"}>
+                  <article
+                    className={`comic-panel overflow-hidden ${index % 3 === 0 ? "comic-panel-cyan" : index % 3 === 1 ? "comic-panel-pink" : ""} ${
+                      index % 2 === 0 ? "-rotate-1" : "rotate-1"
+                    } transition hover:rotate-0`}
+                  >
+                    <div className="relative border-b-4 border-comic-ink bg-comic-ink">
                       {project.imageUrl ? (
-                        <div className="overflow-hidden bg-zinc-100">
-                          <img
-                            src={project.imageUrl}
-                            alt=""
-                            loading="lazy"
-                            className="aspect-[16/10] h-full w-full object-cover transition duration-500 hover:scale-[1.02] md:aspect-auto md:min-h-[220px]"
-                          />
+                        <img src={project.imageUrl} alt="" loading="lazy" className="aspect-[16/10] w-full object-cover opacity-95" />
+                      ) : (
+                        <div
+                          className="flex aspect-[16/10] items-end p-5"
+                          style={{ background: `linear-gradient(135deg, ${primary}, #05d9e8 60%, #ffe66d)` }}
+                        >
+                          <span className="font-comic text-6xl text-white/90">{String(index + 1).padStart(2, "0")}</span>
                         </div>
+                      )}
+                      <div className="comic-halftone-overlay absolute inset-0 opacity-40" aria-hidden="true" />
+                      <span className="absolute left-3 top-3 border-2 border-comic-ink bg-comic-yellow px-2 py-0.5 font-comic text-lg shadow-comic">
+                        #{String(index + 1).padStart(2, "0")}
+                      </span>
+                    </div>
+                    <div className="space-y-3 p-5">
+                      <h3 className="comic-title-sm text-3xl text-comic-ink">{project.title}</h3>
+                      {project.techStack ? (
+                        <p className="font-comic-body text-sm font-bold uppercase tracking-wide text-comic-ink/70">{project.techStack}</p>
                       ) : null}
-                      <div className="flex flex-col justify-center p-6 sm:p-8">
-                        <h3 className="font-display text-xl font-bold tracking-tight sm:text-2xl">{project.title}</h3>
-                        {project.techStack ? <p className="mt-2 text-sm font-medium text-zinc-500">{project.techStack}</p> : null}
-                        {project.description ? (
-                          <p className="mt-4 text-sm leading-7 text-zinc-600">{project.description}</p>
+                      {project.description ? (
+                        <p className="font-comic-body text-base leading-6 text-comic-ink/85">{project.description}</p>
+                      ) : null}
+                      <div className="flex flex-wrap gap-3 pt-1">
+                        {project.liveUrl ? (
+                          <a
+                            href={project.liveUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="comic-burst inline-flex items-center gap-1 bg-comic-pink px-3 py-1.5 font-comic-body text-sm font-bold uppercase text-white"
+                          >
+                            Live <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                          </a>
                         ) : null}
-                        <div className="mt-5 flex flex-wrap gap-4">
-                          {project.liveUrl ? (
-                            <a
-                              href={project.liveUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 text-sm font-semibold"
-                              style={{ color: primary }}
-                            >
-                              Live demo <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-                            </a>
-                          ) : null}
-                          {project.githubUrl ? (
-                            <a
-                              href={project.githubUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-600 hover:text-[var(--pp-ink)]"
-                            >
-                              <Github className="h-4 w-4" aria-hidden="true" /> Code
-                            </a>
-                          ) : null}
-                        </div>
+                        {project.githubUrl ? (
+                          <a
+                            href={project.githubUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="comic-burst inline-flex items-center gap-1 px-3 py-1.5 font-comic-body text-sm font-bold uppercase"
+                          >
+                            <Github className="h-4 w-4" aria-hidden="true" /> Code
+                          </a>
+                        ) : null}
                       </div>
                     </div>
                   </article>
-                </FadeIn>
-              ))
-            )}
-          </div>
+                </PanelIn>
+              ))}
+            </div>
+          )}
         </section>
 
-        {/* Experience */}
+        {/* Experience timeline as comic captions */}
         <section>
-          <FadeIn>
-            <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Experience</h2>
-          </FadeIn>
+          <PanelIn from="slam">
+            <SectionStamp label="Timeline" tone="cyan" />
+          </PanelIn>
 
-          <div className="mt-8">
-            {experiences.length === 0 ? (
-              <EmptyState title="No experience yet" body="Experience entries will appear here when they are published." />
-            ) : (
-              <div className="space-y-0 divide-y divide-zinc-200/80">
-                {experiences.map((experience, index) => (
-                  <FadeIn key={experience.id} delay={index * 0.04}>
-                    <article className="grid gap-3 py-7 sm:grid-cols-[200px_1fr] sm:gap-10">
+          {experiences.length === 0 ? (
+            <EmptyState title="No experience yet" body="Experience entries will appear here when they are published." />
+          ) : (
+            <div className="relative space-y-5 before:absolute before:bottom-4 before:left-4 before:top-4 before:w-1 before:bg-comic-ink sm:before:left-5">
+              {experiences.map((experience, index) => (
+                <PanelIn key={experience.id} delay={index * 0.05} from="left">
+                  <article className="relative ml-10 border-4 border-comic-ink bg-white p-5 shadow-comic sm:ml-14 sm:p-6">
+                    <span className="absolute -left-[2.15rem] top-6 flex h-6 w-6 items-center justify-center border-4 border-comic-ink bg-comic-yellow font-comic text-xs sm:-left-[2.4rem] sm:h-7 sm:w-7">
+                      {index + 1}
+                    </span>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-medium text-zinc-500">
-                          {[experience.startDate, experience.currentlyWorking ? "Present" : experience.endDate]
-                            .filter(Boolean)
-                            .join(" — ")}
+                        <h3 className="font-comic-black text-xl uppercase sm:text-2xl">{experience.jobTitle}</h3>
+                        <p className="mt-1 font-comic-body text-sm font-bold text-comic-ink/70">
+                          {[experience.companyName, experience.employmentType, experience.location].filter(Boolean).join(" · ")}
                         </p>
-                        {experience.location ? <p className="mt-1 text-sm text-zinc-400">{experience.location}</p> : null}
                       </div>
-                      <div>
-                        <h3 className="font-display text-lg font-bold tracking-tight">{experience.jobTitle}</h3>
-                        <p className="mt-1 text-sm font-medium text-zinc-600">
-                          {[experience.companyName, experience.employmentType].filter(Boolean).join(" · ")}
-                        </p>
-                        {experience.description ? (
-                          <p className="mt-3 text-sm leading-7 text-zinc-600">{experience.description}</p>
-                        ) : null}
-                      </div>
-                    </article>
-                  </FadeIn>
-                ))}
-              </div>
-            )}
-          </div>
+                      <span className="comic-caption px-2 py-1 text-xs font-bold uppercase">
+                        {[experience.startDate, experience.currentlyWorking ? "Present" : experience.endDate]
+                          .filter(Boolean)
+                          .join(" → ")}
+                      </span>
+                    </div>
+                    {experience.description ? (
+                      <p className="mt-4 font-comic-body text-base leading-7 text-comic-ink/80">{experience.description}</p>
+                    ) : null}
+                  </article>
+                </PanelIn>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Skills + Certs */}
-        <section className="grid gap-14 lg:grid-cols-2">
-          <FadeIn>
-            <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Skills</h2>
-            <div className="mt-6 space-y-6">
-              {skillsByCategory.length === 0 ? (
-                <p className="text-sm text-zinc-500">No skills published yet.</p>
-              ) : (
-                skillsByCategory.map(([category, skills]) => (
+        <section className="grid gap-10 lg:grid-cols-2">
+          <PanelIn from="left">
+            <SectionStamp label="Power Set" tone="yellow" />
+            {skillsByCategory.length === 0 ? (
+              <p className="font-comic-body text-sm">No skills published yet.</p>
+            ) : (
+              <div className="space-y-6">
+                {skillsByCategory.map(([category, skills]) => (
                   <div key={category}>
-                    <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">{category}</h3>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {skills.map((skill) => (
-                        <span
+                    <h3 className="mb-3 font-comic text-2xl text-comic-pink">{category}</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {skills.map((skill, i) => (
+                        <motion.span
                           key={skill}
-                          className="rounded-lg border border-black/[0.06] bg-white px-3 py-1.5 text-sm font-medium text-zinc-700"
+                          className="comic-sticker px-3 py-1.5 text-sm"
+                          style={{ rotate: i % 2 === 0 ? -2 : 2 }}
+                          whileHover={reduceMotion ? undefined : { scale: 1.08, rotate: 0 }}
                         >
                           {skill}
-                        </span>
+                        </motion.span>
                       ))}
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          </FadeIn>
+                ))}
+              </div>
+            )}
+          </PanelIn>
 
-          <FadeIn delay={0.08}>
-            <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Certifications</h2>
-            <div className="mt-6 space-y-5">
-              {certifications.length === 0 ? (
-                <p className="text-sm text-zinc-500">No certifications published yet.</p>
-              ) : (
-                certifications.map((certification) => (
-                  <article key={certification.id} className="border-t border-zinc-200/80 pt-5 first:border-t-0 first:pt-0">
-                    <h3 className="font-display text-base font-bold tracking-tight">{certification.name}</h3>
-                    <p className="mt-1 text-sm text-zinc-600">{certification.issuingOrganization}</p>
-                    <p className="mt-1 text-xs text-zinc-400">
+          <PanelIn from="right" delay={0.08}>
+            <SectionStamp label="Badges" tone="pink" />
+            {certifications.length === 0 ? (
+              <p className="font-comic-body text-sm">No certifications published yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {certifications.map((certification, index) => (
+                  <article
+                    key={certification.id}
+                    className={`border-4 border-comic-ink bg-comic-cream p-4 shadow-comic ${index % 2 === 0 ? "-rotate-1" : "rotate-1"}`}
+                  >
+                    <h3 className="font-comic-black text-lg uppercase">{certification.name}</h3>
+                    <p className="mt-1 font-comic-body text-sm font-bold text-comic-ink/70">{certification.issuingOrganization}</p>
+                    <p className="mt-1 font-comic-body text-xs uppercase tracking-wide text-comic-ink/50">
                       {[certification.issueDate, certification.expiryDate].filter(Boolean).join(" — ")}
                     </p>
                     {certification.credentialUrl ? (
                       <a
-                        className="mt-2 inline-flex items-center gap-1 text-sm font-semibold"
-                        style={{ color: primary }}
+                        className="mt-3 inline-flex items-center gap-1 font-comic text-xl text-comic-pink"
                         href={certification.credentialUrl}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        View credential <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+                        Credential <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                       </a>
                     ) : null}
                   </article>
-                ))
-              )}
-            </div>
-          </FadeIn>
+                ))}
+              </div>
+            )}
+          </PanelIn>
         </section>
 
         {customLinks.length > 0 ? (
           <section>
-            <FadeIn>
-              <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Links</h2>
-              <div className="mt-6 flex flex-wrap gap-3">
-                {customLinks.map((link) => (
+            <PanelIn>
+              <SectionStamp label="Multiverse Links" tone="cyan" />
+              <div className="flex flex-wrap gap-3">
+                {customLinks.map((link, index) => (
                   <a
                     key={link.id}
                     href={link.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-semibold transition hover:border-black/20"
+                    className={`comic-burst inline-flex items-center gap-2 px-4 py-2 font-comic text-xl ${
+                      index % 3 === 0 ? "bg-comic-pink text-white" : index % 3 === 1 ? "bg-comic-cyan" : "bg-comic-yellow"
+                    }`}
                   >
                     {link.label}
-                    <ArrowUpRight className="h-3.5 w-3.5 text-zinc-400" aria-hidden="true" />
+                    <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
                   </a>
                 ))}
               </div>
-            </FadeIn>
+            </PanelIn>
           </section>
         ) : null}
       </div>
 
-      <footer className="border-t border-zinc-200/80 px-5 py-8 sm:px-8">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 text-sm text-zinc-500">
-          <span>{portfolio.fullName}</span>
-          <Link to="/" className="hover:text-[var(--pp-ink)]">
-            Stackfolio
-          </Link>
+      <footer className="relative z-10 border-t-4 border-comic-ink bg-comic-ink px-4 py-6 text-comic-cream sm:px-6">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-comic text-2xl text-comic-yellow">{portfolio.fullName}</p>
+          <p className="font-comic-body text-sm font-bold uppercase tracking-widest text-comic-cyan">
+            Printed by{" "}
+            <Link to="/" className="underline decoration-comic-pink decoration-2 underline-offset-4">
+              Stackfolio
+            </Link>
+          </p>
         </div>
       </footer>
     </main>
