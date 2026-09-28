@@ -3,9 +3,10 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getPublicPortfolio } from "../api/portfolio";
+import Avatar from "../components/Avatar";
 import EmptyState from "../components/EmptyState";
 import Spinner from "../components/Spinner";
-import { apiErrorMessage, initials, orderByDisplay } from "../lib/utils";
+import { apiErrorMessage, orderByDisplay } from "../lib/utils";
 import type { Portfolio } from "../types/portfolio";
 
 function PublicLink({
@@ -112,11 +113,15 @@ export default function PublicPortfolio() {
       <section className="relative overflow-hidden" style={{ backgroundColor: secondary }}>
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[1fr_340px] lg:px-8 lg:py-16">
           <div className="flex flex-col justify-center">
-            <div
-              className="mb-6 flex h-16 w-16 items-center justify-center rounded-lg text-2xl font-bold text-white"
-              style={{ backgroundColor: primary }}
-            >
-              {initials(portfolio.fullName)}
+            <div className="mb-6">
+              <Avatar
+                name={portfolio.fullName}
+                imageUrl={portfolio.profileImageUrl}
+                backgroundColor={primary}
+                sizeClassName="h-20 w-20"
+                textClassName="text-2xl"
+                className="rounded-lg"
+              />
             </div>
             <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-white sm:text-5xl">{portfolio.fullName}</h1>
             {portfolio.summary ? (

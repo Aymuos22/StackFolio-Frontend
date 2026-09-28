@@ -41,10 +41,12 @@ import {
   updateSummary,
   updateTechnicalSkill,
 } from "../api/portfolio";
+import Avatar from "../components/Avatar";
 import Button from "../components/Button";
 import EmptyState from "../components/EmptyState";
 import Field from "../components/Field";
 import Modal from "../components/Modal";
+import ProfileImageUploader from "../components/ProfileImageUploader";
 import Spinner from "../components/Spinner";
 import TextareaField from "../components/TextareaField";
 import { useAuth } from "../context/AuthContext";
@@ -529,17 +531,11 @@ export default function Dashboard() {
         <aside className="space-y-4">
           <section className="panel p-5">
             <div className="flex items-center gap-3">
-              <div
-                className="flex h-12 w-12 items-center justify-center rounded-md text-lg font-bold text-white"
-                style={{ backgroundColor: portfolio?.primaryColor ?? "#2563eb" }}
-              >
-                {(portfolio?.fullName ?? "SF")
-                  .split(" ")
-                  .map((part) => part[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase()}
-              </div>
+              <Avatar
+                name={portfolio?.fullName ?? "SF"}
+                imageUrl={portfolio?.profileImageUrl}
+                backgroundColor={portfolio?.primaryColor ?? "#2563eb"}
+              />
               <div className="min-w-0">
                 <p className="truncate font-semibold text-slate-950">{portfolio?.fullName ?? "Draft portfolio"}</p>
                 <p className="truncate text-sm text-slate-500">{portfolio?.slug ? `/p/${portfolio.slug}` : "No public slug yet"}</p>
@@ -583,6 +579,17 @@ export default function Dashboard() {
           ) : null}
 
           <PortfolioDetailsForm portfolio={portfolio} onSaved={() => refreshPortfolio()} />
+
+          <ProfileImageUploader
+            imageUrl={portfolio?.profileImageUrl}
+            fullName={portfolio?.fullName}
+            primaryColor={portfolio?.primaryColor}
+            disabled={!portfolio}
+            onImageChange={(imageUrl) => {
+              setPortfolio((current) => (current ? { ...current, profileImageUrl: imageUrl } : current));
+            }}
+          />
+
           <SummaryEditor portfolio={portfolio} onSaved={() => refreshPortfolio()} />
 
           <SectionEditor<Project, ProjectForm>

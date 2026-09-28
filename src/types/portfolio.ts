@@ -63,11 +63,17 @@ export type CustomLink = {
 export type Portfolio = PortfolioBasePayload & {
   id: number;
   summary?: string;
+  profileImageUrl?: string | null;
   projects: Project[];
   experiences: Experience[];
   certifications: Certification[];
   technicalSkills: TechnicalSkill[];
   customLinks: CustomLink[];
+};
+
+export type ProfileImageUploadResponse = {
+  imageUrl: string;
+  message: string;
 };
 
 export type SummaryPayload = {

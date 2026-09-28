@@ -5,6 +5,7 @@ import type {
   ExperiencePayload,
   Portfolio,
   PortfolioBasePayload,
+  ProfileImageUploadResponse,
   ProjectPayload,
   SummaryPayload,
   TechnicalSkillPayload,
@@ -33,6 +34,17 @@ export async function getPublicPortfolio(slug: string) {
 export async function updateSummary(payload: SummaryPayload) {
   const { data } = await api.put<Portfolio>("/api/me/portfolio/summary", payload);
   return data;
+}
+
+export async function uploadProfileImage(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await api.post<ProfileImageUploadResponse>("/api/me/portfolio/image", formData);
+  return data;
+}
+
+export async function deleteProfileImage() {
+  await api.delete("/api/me/portfolio/image");
 }
 
 export async function createProject(payload: ProjectPayload) {
