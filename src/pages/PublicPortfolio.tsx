@@ -29,6 +29,17 @@ const slideSkew = {
   },
 };
 
+const COMIC_MISSION_ART = [
+  "/comic/comic-mission-01.png",
+  "/comic/comic-mission-02.png",
+  "/comic/comic-mission-03.png",
+  "/comic/comic-mission-04.png",
+] as const;
+
+function comicCoverFor(index: number) {
+  return COMIC_MISSION_ART[index % COMIC_MISSION_ART.length];
+}
+
 function ActionChip({ href, children, icon }: { href?: string; children: ReactNode; icon: ReactNode }) {
   if (!href) return null;
   return (
@@ -432,20 +443,21 @@ export default function PublicPortfolio() {
                     } transition hover:rotate-0`}
                   >
                     <div className="relative border-b-4 border-comic-ink bg-comic-ink">
-                      {project.imageUrl ? (
-                        <img src={project.imageUrl} alt="" loading="lazy" className="aspect-[16/10] w-full object-cover opacity-95" />
-                      ) : (
-                        <div
-                          className="flex aspect-[16/10] items-end p-5"
-                          style={{ background: `linear-gradient(135deg, ${primary}, #05d9e8 60%, #ffe66d)` }}
-                        >
-                          <span className="font-comic text-6xl text-white/90">{String(index + 1).padStart(2, "0")}</span>
-                        </div>
-                      )}
+                      <img
+                        src={project.imageUrl || comicCoverFor(index)}
+                        alt=""
+                        loading="lazy"
+                        className="aspect-[16/10] w-full object-cover opacity-95"
+                      />
                       <div className="comic-halftone-overlay absolute inset-0 opacity-40" aria-hidden="true" />
                       <span className="absolute left-3 top-3 border-2 border-comic-ink bg-comic-yellow px-2 py-0.5 font-comic text-lg shadow-comic">
                         #{String(index + 1).padStart(2, "0")}
                       </span>
+                      {!project.imageUrl ? (
+                        <span className="absolute bottom-3 right-3 rotate-[-6deg] border-2 border-comic-ink bg-comic-pink px-2 py-0.5 font-comic text-sm text-white shadow-comic">
+                          ZAP!
+                        </span>
+                      ) : null}
                     </div>
                     <div className="space-y-3 p-5">
                       <h3 className="comic-title-sm text-3xl text-comic-ink">{project.title}</h3>
