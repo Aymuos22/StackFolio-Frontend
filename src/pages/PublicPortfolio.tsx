@@ -89,6 +89,152 @@ function SectionStamp({ label, tone = "pink" }: { label: string; tone?: "pink" |
   );
 }
 
+type SummaryChunk = {
+  label: string;
+  text: string;
+  tone: "speech" | "caption" | "cyan" | "pink" | "cream";
+  items?: string[];
+};
+
+function extractLabeledSection(source: string, label: RegExp): { value: string; rest: string } {
+  const match = source.match(label);
+  if (!match || match.index === undefined) return { value: "", rest: source };
+  return {
+    value: match[1].trim(),
+    rest: `${source.slice(0, match.index).trim()} ${source.slice(match.index + match[0].length).trim()}`.trim(),
+  };
+}
+
+function splitRoleAndBio(text: string): { role: string; bioParts: string[] } {
+  const trimmed = text.trim();
+  if (!trimmed) return { role: "", bioParts: [] };
+
+  const roleBioMatch = trimmed.match(
+    /^(.+?)\s+((?:AI\s+)?(?:Full[- ]?stack|Software|Senior|Junior|Backend|Frontend|Platform)?\s*(?:Engineer|Developer|Designer|Architect|Builder|Specialist)\b[\s\S]*)$/i,
+  );
+
+  let role = "";
+  let bio = trimmed;
+  if (roleBioMatch && (roleBioMatch[1].includes("·") || roleBioMatch[1].includes("—") || roleBioMatch[1].length < 100)) {
+    role = roleBioMatch[1].trim();
+    bio = roleBioMatch[2].trim();
+  }
+
+  const sentences = bio.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map((part) => part.trim()).filter(Boolean) ?? [bio];
+  if (sentences.length <= 2) return { role, bioParts: sentences.length ? [sentences.join(" ")] : [] };
+
+  const mid = Math.ceil(sentences.length / 2);
+  return {
+    role,
+    bioParts: [sentences.slice(0, mid).join(" "), sentences.slice(mid).join(" ")].filter(Boolean),
+  };
+}
+
+function splitSummaryChunks(summary: string): SummaryChunk[] {
+  let rest = summary.replace(/\s+/g, " ").trim();
+  if (!rest) return [];
+
+  const achievements = extractLabeledSection(rest, /\bAchievements?:\s*([\s\S]+)$/i);
+  rest = achievements.rest;
+  const education = extractLabeledSection(rest, /\bEducation:\s*([\s\S]+)$/i);
+  rest = education.rest;
+
+  const { role, bioParts } = splitRoleAndBio(rest);
+  const chunks: SummaryChunk[] = [];
+
+  if (role) {
+    chunks.push({ label: "Class", text: role, tone: "cyan" });
+  }
+
+  bioParts.forEach((part, index) => {
+    chunks.push({
+      label: index === 0 ? "Origin" : "Plot",
+      text: part,
+      tone: index === 0 ? "speech" : "cream",
+    });
+  });
+
+  if (education.value) {
+    chunks.push({ label: "School", text: education.value, tone: "caption" });
+  }
+
+  if (achievements.value) {
+    const items = achievements.value
+      .split(/\s*;\s*/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    chunks.push({
+      label: "Wins",
+      text: achievements.value,
+      tone: "pink",
+      items: items.length > 1 ? items : undefined,
+    });
+  }
+
+  // Fallback: if nothing structured, keep short sentence panels
+  if (chunks.length === 0) {
+    const sentences = rest.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map((part) => part.trim()).filter(Boolean) ?? [rest];
+    for (const [index, sentence] of sentences.entries()) {
+      chunks.push({
+        label: index === 0 ? "Origin" : `Panel ${index + 1}`,
+        text: sentence,
+        tone: index % 2 === 0 ? "speech" : "caption",
+      });
+    }
+  }
+
+  return chunks;
+}
+
+const chunkToneClass: Record<SummaryChunk["tone"], string> = {
+  speech: "comic-speech bg-white",
+  caption: "comic-caption",
+  cyan: "border-4 border-comic-ink bg-comic-cyan shadow-comic",
+  pink: "border-4 border-comic-ink bg-comic-pink text-white shadow-comic",
+  cream: "border-4 border-comic-ink bg-comic-cream shadow-comic",
+};
+
+function SummaryPanels({ summary }: { summary: string }) {
+  const chunks = useMemo(() => splitSummaryChunks(summary), [summary]);
+  if (chunks.length === 0) return null;
+
+  return (
+    <motion.div variants={slideSkew} className="mt-8 flex max-w-xl flex-col gap-3">
+      {chunks.map((chunk, index) => (
+        <motion.div
+          key={`${chunk.label}-${index}`}
+          initial={{ opacity: 0, y: 18, rotate: index % 2 === 0 ? -1.5 : 1.5 }}
+          animate={{ opacity: 1, y: 0, rotate: index % 2 === 0 ? -1 : 1 }}
+          transition={{ type: "spring", stiffness: 240, damping: 18, delay: 0.12 + index * 0.08 }}
+          className={`relative p-4 font-comic-body text-sm leading-6 sm:text-base sm:leading-7 ${chunkToneClass[chunk.tone]} ${
+            chunk.tone === "speech" ? "rounded-2xl" : ""
+          }`}
+        >
+          <span
+            className={`mb-2 inline-block border-2 border-comic-ink px-2 py-0.5 font-comic text-sm tracking-wide ${
+              chunk.tone === "pink" ? "bg-comic-ink text-comic-yellow" : "bg-comic-ink text-comic-cream"
+            }`}
+          >
+            {chunk.label}
+          </span>
+          {chunk.items ? (
+            <ul className="space-y-1.5 pl-1">
+              {chunk.items.map((item) => (
+                <li key={item} className="flex gap-2">
+                  <span aria-hidden="true">★</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>{chunk.text}</p>
+          )}
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+}
+
 export default function PublicPortfolio() {
   const { slug } = useParams();
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
@@ -214,11 +360,7 @@ export default function PublicPortfolio() {
               {portfolio.fullName}
             </motion.h1>
 
-            {portfolio.summary ? (
-              <motion.div variants={slideSkew} className="comic-speech relative mt-8 max-w-xl p-5 font-comic-body text-base leading-7 sm:text-lg">
-                {portfolio.summary}
-              </motion.div>
-            ) : null}
+            {portfolio.summary ? <SummaryPanels summary={portfolio.summary} /> : null}
 
             <motion.div variants={slideSkew} className="mt-8 flex flex-wrap gap-3">
               <ActionChip href={portfolio.publicEmail ? `mailto:${portfolio.publicEmail}` : undefined} icon={<Mail className="h-4 w-4" />}>
