@@ -1,0 +1,24 @@
+# Dependencies
+node_modules
+
+# Build
+dist
+dist-ssr
+*.local
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+.idea
+.vscode/*
+
+# TypeScript / Vite caches
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.js
