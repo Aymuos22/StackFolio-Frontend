@@ -244,7 +244,7 @@ export default function WolverineClaws({ ready, onEnter }: MiniGameProps) {
       tryBerserk();
       const rage = s.berserkT > 0;
       s.facing = dx >= 0 ? 1 : -1;
-      s.slashT = 10;
+      s.slashT = 14;
       s.trails.push({
         x0: ax,
         y0: ay,
@@ -256,6 +256,7 @@ export default function WolverineClaws({ ready, onEnter }: MiniGameProps) {
         struck: new Set(),
       });
       burst(bx, by, rage ? "#fdba74" : "#e2e8f0", rage ? 14 : 8, 2);
+      sniktBurst(bx, by, s.facing, rage);
       hitTestTrail(s.trails[s.trails.length - 1]!);
 
       // Dual-claw in berserk: mirror trail the other way
@@ -276,139 +277,395 @@ export default function WolverineClaws({ ready, onEnter }: MiniGameProps) {
       }
     };
 
+    const sniktBurst = (x: number, y: number, dir: 1 | -1, rage: boolean) => {
+      for (let i = 0; i < (rage ? 16 : 10); i++) {
+        state.current.parts.push({
+          x,
+          y: y + (Math.random() - 0.5) * 16,
+          vx: dir * (2 + Math.random() * 5),
+          vy: (Math.random() - 0.5) * 3,
+          life: 14 + Math.random() * 8,
+          max: 22,
+          color: rage ? "#fdba74" : i % 2 ? "#e2e8f0" : "#94a3b8",
+          size: 1.5 + Math.random() * 2.5,
+        });
+      }
+    };
+
+    const drawAdamantiumClaws = (
+      baseX: number,
+      baseY: number,
+      dir: 1 | -1,
+      length: number,
+      rage: boolean,
+      spread = 1,
+      angle = 0,
+    ) => {
+      ctx.save();
+      ctx.translate(baseX, baseY);
+      ctx.rotate(angle);
+      for (let i = -1; i <= 1; i++) {
+        const oy = i * 6.2 * spread;
+        const len = length - Math.abs(i) * 2;
+        const tipX = dir * len;
+        const blade = ctx.createLinearGradient(0, oy, tipX, oy);
+        if (rage) {
+          blade.addColorStop(0, "#9a3412");
+          blade.addColorStop(0.25, "#fb923c");
+          blade.addColorStop(0.6, "#fdba74");
+          blade.addColorStop(1, "#fffbeb");
+        } else {
+          blade.addColorStop(0, "#334155");
+          blade.addColorStop(0.3, "#94a3b8");
+          blade.addColorStop(0.55, "#f1f5f9");
+          blade.addColorStop(0.8, "#cbd5e1");
+          blade.addColorStop(1, "#64748b");
+        }
+        ctx.fillStyle = blade;
+        ctx.shadowColor = rage ? "#f97316" : "rgba(248,250,252,0.7)";
+        ctx.shadowBlur = rage ? 10 : 5;
+        ctx.beginPath();
+        ctx.moveTo(dir * 2, oy - 2.8);
+        ctx.lineTo(tipX, oy - 0.4);
+        ctx.lineTo(tipX + dir * 2, oy);
+        ctx.lineTo(tipX, oy + 0.4);
+        ctx.lineTo(dir * 2, oy + 2.8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "rgba(255,255,255,0.65)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(dir * 4, oy - 1.6);
+        ctx.lineTo(tipX * 0.75, oy - 0.6);
+        ctx.stroke();
+      }
+      ctx.fillStyle = rage ? "#7c2d12" : "#1e3a8a";
+      ctx.strokeStyle = rage ? "#fb923c" : "#93c5fd";
+      ctx.lineWidth = 1.3;
+      roundRect(ctx, -7, -11, 14, 22, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = rage ? "#fdba74" : "#64748b";
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.arc(dir * 3, i * 5.5, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    };
+
     const drawWolverine = (x: number, y: number) => {
       const s = state.current;
-      const bob = Math.sin(s.frame / 7) * 1.5;
+      const bob = Math.sin(s.frame / 8) * 1.2;
       const py = y + bob;
       const face = s.facing;
       const slashing = s.slashT > 0;
       const raging = s.berserkT > 0;
+      const lean = slashing ? face * 8 : Math.sin(s.frame / 20) * 1.5;
+      const sc = 1.18;
 
       if (raging) {
         ctx.save();
         ctx.globalCompositeOperation = "lighter";
-        const aura = ctx.createRadialGradient(x, py, 4, x, py, 48);
-        aura.addColorStop(0, "rgba(249,115,22,0.55)");
-        aura.addColorStop(0.5, "rgba(220,38,38,0.28)");
+        const aura = ctx.createRadialGradient(x, py, 4, x, py, 62);
+        aura.addColorStop(0, "rgba(249,115,22,0.7)");
+        aura.addColorStop(0.4, "rgba(220,38,38,0.35)");
         aura.addColorStop(1, "transparent");
         ctx.fillStyle = aura;
         ctx.beginPath();
-        ctx.ellipse(x, py, 36, 48, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, py, 44, 56, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
       }
 
-      ctx.fillStyle = "#0f172a";
-      roundRect(ctx, x - 12, py + 28, 10, 8, 2);
-      ctx.fill();
-      roundRect(ctx, x + 2, py + 28, 10, 8, 2);
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
+      ctx.beginPath();
+      ctx.ellipse(x, y + 40, 26, 6, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = "#eab308";
-      roundRect(ctx, x - 11, py + 12, 10, 18, 3);
-      ctx.fill();
-      roundRect(ctx, x + 1, py + 12, 10, 18, 3);
-      ctx.fill();
-      ctx.fillStyle = "#1d4ed8";
-      ctx.fillRect(x - 11, py + 18, 10, 4);
-      ctx.fillRect(x + 1, py + 18, 10, 4);
+      ctx.save();
+      ctx.translate(x + lean, py);
+      ctx.scale(sc, sc);
 
-      ctx.fillStyle = "#facc15";
-      ctx.strokeStyle = "#a16207";
-      ctx.lineWidth = 1.5;
-      roundRect(ctx, x - 13, py - 8, 26, 24, 5);
+      // Boots
+      ctx.fillStyle = "#0a0a0a";
+      roundRect(ctx, -16, 32, 14, 10, 2);
+      ctx.fill();
+      roundRect(ctx, 2, 32, 14, 10, 2);
+      ctx.fill();
+      ctx.fillStyle = "#334155";
+      ctx.fillRect(-16, 32, 14, 3);
+      ctx.fillRect(2, 32, 14, 3);
+
+      // Legs
+      const legG = ctx.createLinearGradient(0, 12, 0, 34);
+      legG.addColorStop(0, "#fde047");
+      legG.addColorStop(1, "#ca8a04");
+      ctx.fillStyle = legG;
+      roundRect(ctx, -14, 14, 13, 20, 4);
+      ctx.fill();
+      roundRect(ctx, 1, 14, 13, 20, 4);
+      ctx.fill();
+      ctx.fillStyle = "#1e40af";
+      ctx.fillRect(-14, 20, 13, 6);
+      ctx.fillRect(1, 20, 13, 6);
+      ctx.fillStyle = "#1e3a8a";
+      roundRect(ctx, -13, 26, 11, 5, 2);
+      ctx.fill();
+      roundRect(ctx, 2, 26, 11, 5, 2);
+      ctx.fill();
+
+      // Torso V
+      const torsoG = ctx.createLinearGradient(-16, -14, 16, 16);
+      torsoG.addColorStop(0, "#fef08a");
+      torsoG.addColorStop(0.45, "#eab308");
+      torsoG.addColorStop(1, "#a16207");
+      ctx.fillStyle = torsoG;
+      ctx.strokeStyle = "#713f12";
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(-16, -8);
+      ctx.quadraticCurveTo(-18, 4, -14, 14);
+      ctx.lineTo(14, 14);
+      ctx.quadraticCurveTo(18, 4, 16, -8);
+      ctx.quadraticCurveTo(0, -14, -16, -8);
+      ctx.closePath();
       ctx.fill();
       ctx.stroke();
+      ctx.strokeStyle = "rgba(113,63,12,0.55)";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-10, -2);
+      ctx.quadraticCurveTo(-5, 2, 0, -1);
+      ctx.quadraticCurveTo(5, 2, 10, -2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, 10);
+      ctx.moveTo(-7, 5);
+      ctx.lineTo(7, 5);
+      ctx.moveTo(-6, 9);
+      ctx.lineTo(6, 9);
+      ctx.stroke();
+
+      // Blue shoulder yoke
       ctx.fillStyle = "#1d4ed8";
-      ctx.fillRect(x - 13, py - 8, 26, 5);
-      ctx.fillStyle = "#0f172a";
-      ctx.fillRect(x - 12, py + 10, 24, 5);
-      ctx.fillStyle = "#eab308";
-      ctx.beginPath();
-      ctx.arc(x, py + 12.5, 3, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Dual arms — both claws always out (Wolverine signature)
-      ctx.fillStyle = "#facc15";
-      if (slashing) {
-        // Keep positive widths — negative roundRect radius freezes the canvas loop
-        const leadX = face > 0 ? x + 8 : x - 32;
-        const trailX = face > 0 ? x - 28 : x + 10;
-        roundRect(ctx, leadX, py - 12, 24, 11, 3);
-        ctx.fill();
-        roundRect(ctx, trailX, py - 4, 18, 10, 3);
-        ctx.fill();
-      } else {
-        roundRect(ctx, x - 22, py - 4, 10, 14, 3);
-        ctx.fill();
-        roundRect(ctx, x + 12, py - 4, 10, 14, 3);
-        ctx.fill();
-      }
-
-      const drawClaws = (clawX: number, clawY: number, dir: 1 | -1, long: boolean) => {
-        ctx.strokeStyle = raging ? "#fdba74" : "#cbd5e1";
-        ctx.lineWidth = 2.6;
-        ctx.lineCap = "round";
-        ctx.shadowColor = raging ? "#f97316" : "#94a3b8";
-        ctx.shadowBlur = raging ? 9 : 3;
-        for (let i = -1; i <= 1; i++) {
-          ctx.beginPath();
-          ctx.moveTo(clawX - dir * 3, clawY + i * 4);
-          ctx.lineTo(clawX + dir * (long ? 28 : 16), clawY + i * 5 - 2);
-          ctx.stroke();
-        }
-        ctx.shadowBlur = 0;
-      };
-
-      if (slashing) {
-        drawClaws(x + face * 30, py - 8, face, true);
-        drawClaws(x - face * 26, py + 2, -face as 1 | -1, raging);
-      } else {
-        drawClaws(x - 20, py + 8, -1, false);
-        drawClaws(x + 20, py + 8, 1, false);
-      }
-
-      ctx.fillStyle = "#facc15";
-      ctx.beginPath();
-      ctx.ellipse(x, py - 22, 11, 12, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#0f172a";
-      ctx.beginPath();
-      ctx.moveTo(x - 10, py - 28);
-      ctx.lineTo(x - 14, py - 46);
-      ctx.lineTo(x - 2, py - 32);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(x + 10, py - 28);
-      ctx.lineTo(x + 14, py - 46);
-      ctx.lineTo(x + 2, py - 32);
-      ctx.fill();
-      ctx.fillStyle = "#1e293b";
-      ctx.fillRect(x - 11, py - 28, 22, 10);
-      ctx.fillStyle = raging ? "#f97316" : "#f8fafc";
-      ctx.beginPath();
-      ctx.ellipse(x - 4, py - 23, 3, 2.5, 0, 0, Math.PI * 2);
-      ctx.ellipse(x + 4, py - 23, 3, 2.5, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#7c2d12";
+      ctx.strokeStyle = "#1e3a8a";
       ctx.lineWidth = 1.4;
       ctx.beginPath();
-      ctx.moveTo(x - 4, py - 14);
-      ctx.quadraticCurveTo(x, py - 12, x + 4, py - 14);
+      ctx.moveTo(-17, -10);
+      ctx.lineTo(-18, -2);
+      ctx.lineTo(-6, -8);
+      ctx.lineTo(0, -11);
+      ctx.lineTo(6, -8);
+      ctx.lineTo(18, -2);
+      ctx.lineTo(17, -10);
+      ctx.quadraticCurveTo(0, -16, -17, -10);
+      ctx.closePath();
+      ctx.fill();
       ctx.stroke();
+      ctx.fillStyle = "#2563eb";
+      ctx.beginPath();
+      ctx.ellipse(-15, -6, 7, 5, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(15, -6, 7, 5, 0.4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Belt + X
+      ctx.fillStyle = "#0f172a";
+      roundRect(ctx, -15, 12, 30, 7, 2);
+      ctx.fill();
+      ctx.strokeStyle = "#facc15";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-6, 13);
+      ctx.lineTo(6, 18);
+      ctx.moveTo(6, 13);
+      ctx.lineTo(-6, 18);
+      ctx.stroke();
+      ctx.fillStyle = "#eab308";
+      ctx.beginPath();
+      ctx.arc(0, 15.5, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#713f12";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Arms
+      ctx.fillStyle = "#facc15";
+      ctx.strokeStyle = "#a16207";
+      ctx.lineWidth = 1.3;
+      if (slashing) {
+        const lx = face > 0 ? 12 : -38;
+        const tx = face > 0 ? -34 : 16;
+        roundRect(ctx, lx, -16, 28, 13, 5);
+        ctx.fill();
+        ctx.stroke();
+        roundRect(ctx, tx, -2, 20, 12, 5);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#1d4ed8";
+        ctx.fillRect(face > 0 ? lx + 20 : lx, -16, 8, 13);
+        ctx.fillRect(face > 0 ? tx : tx + 12, -2, 8, 12);
+        ctx.fillStyle = "#eab308";
+        ctx.beginPath();
+        ctx.ellipse(face > 0 ? lx + 8 : lx + 20, -10, 6, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        roundRect(ctx, -28, -6, 13, 18, 5);
+        ctx.fill();
+        ctx.stroke();
+        roundRect(ctx, 15, -6, 13, 18, 5);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#1d4ed8";
+        ctx.fillRect(-28, 8, 13, 5);
+        ctx.fillRect(15, 8, 13, 5);
+        ctx.fillStyle = "#eab308";
+        ctx.beginPath();
+        ctx.ellipse(-22, 0, 5, 6, 0, 0, Math.PI * 2);
+        ctx.ellipse(22, 0, 5, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Claws
+      if (slashing) {
+        drawAdamantiumClaws(face * 38, -10, face, raging ? 36 : 30, raging, 1.2, face * -0.15);
+        drawAdamantiumClaws(face * -30, 4, (-face) as 1 | -1, raging ? 24 : 18, raging, 0.95, face * 0.2);
+      } else {
+        drawAdamantiumClaws(-26, 12, -1, 16, raging, 0.9, 0.35);
+        drawAdamantiumClaws(26, 12, 1, 16, raging, 0.9, -0.35);
+      }
+
+      // Head / classic cowl
+      const hy = -28;
+      ctx.fillStyle = "#eab308";
+      roundRect(ctx, -5, hy + 10, 10, 8, 2);
+      ctx.fill();
+
+      const maskG = ctx.createLinearGradient(0, hy - 8, 0, hy + 14);
+      maskG.addColorStop(0, "#fde047");
+      maskG.addColorStop(1, "#ca8a04");
+      ctx.fillStyle = maskG;
+      ctx.strokeStyle = "#854d0e";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.ellipse(0, hy + 2, 13, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      const drawHorn = (side: 1 | -1) => {
+        const tip = ctx.createLinearGradient(side * 8, hy - 4, side * 14, hy - 32);
+        tip.addColorStop(0, "#eab308");
+        tip.addColorStop(0.35, "#1e293b");
+        tip.addColorStop(1, "#020617");
+        ctx.fillStyle = tip;
+        ctx.beginPath();
+        ctx.moveTo(side * 6, hy - 2);
+        ctx.quadraticCurveTo(side * 10, hy - 18, side * 13, hy - 30);
+        ctx.quadraticCurveTo(side * 16, hy - 18, side * 11, hy - 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "rgba(250,204,21,0.5)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(side * 8, hy - 4);
+        ctx.quadraticCurveTo(side * 11, hy - 16, side * 12, hy - 26);
+        ctx.stroke();
+      };
+      drawHorn(-1);
+      drawHorn(1);
+
+      // Black eye mask
+      ctx.fillStyle = "#020617";
+      ctx.beginPath();
+      ctx.moveTo(-13, hy - 4);
+      ctx.quadraticCurveTo(0, hy - 9, 13, hy - 4);
+      ctx.lineTo(12, hy + 4);
+      ctx.quadraticCurveTo(0, hy + 7, -12, hy + 4);
+      ctx.closePath();
+      ctx.fill();
+
+      const eyeCol = raging ? "#fb923c" : "#ffffff";
+      ctx.fillStyle = eyeCol;
+      ctx.beginPath();
+      ctx.moveTo(-8, hy);
+      ctx.quadraticCurveTo(-5, hy - 4, -2, hy - 1);
+      ctx.quadraticCurveTo(-5, hy + 3, -8, hy + 1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(8, hy);
+      ctx.quadraticCurveTo(5, hy - 4, 2, hy - 1);
+      ctx.quadraticCurveTo(5, hy + 3, 8, hy + 1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = raging ? "#7c2d12" : "#0f172a";
+      ctx.beginPath();
+      ctx.ellipse(-5, hy, 1.2, 1.8, 0, 0, Math.PI * 2);
+      ctx.ellipse(5, hy, 1.2, 1.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#eab308";
+      ctx.beginPath();
+      ctx.moveTo(-11, hy + 4);
+      ctx.quadraticCurveTo(0, hy + 16, 11, hy + 4);
+      ctx.quadraticCurveTo(0, hy + 8, -11, hy + 4);
+      ctx.fill();
+
+      ctx.strokeStyle = "#7c2d12";
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(-5, hy + 10);
+      ctx.quadraticCurveTo(0, hy + 13, 5, hy + 10);
+      ctx.stroke();
+
+      ctx.fillStyle = "#0f172a";
+      ctx.beginPath();
+      ctx.moveTo(-13, hy + 2);
+      ctx.lineTo(-15, hy + 14);
+      ctx.lineTo(-10, hy + 8);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(13, hy + 2);
+      ctx.lineTo(15, hy + 14);
+      ctx.lineTo(10, hy + 8);
+      ctx.fill();
+
+      ctx.restore();
 
       if (s.healFlash > 0) {
         ctx.strokeStyle = `rgba(74,222,128,${s.healFlash / 24})`;
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(x, py, 30 + (24 - s.healFlash), 0, Math.PI * 2);
+        ctx.arc(x, py, 36 + (24 - s.healFlash), 0, Math.PI * 2);
         ctx.stroke();
+        ctx.fillStyle = `rgba(134,239,172,${s.healFlash / 28})`;
+        for (let i = 0; i < 6; i++) {
+          const a = (s.frame / 8 + i) * 1.1;
+          ctx.beginPath();
+          ctx.arc(x + Math.cos(a) * 30, py + Math.sin(a) * 36, 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
       if (s.hurtFlash > 0) {
-        ctx.fillStyle = `rgba(239,68,68,${s.hurtFlash / 30})`;
+        ctx.fillStyle = `rgba(239,68,68,${s.hurtFlash / 32})`;
         ctx.beginPath();
-        ctx.arc(x, py, 26, 0, Math.PI * 2);
+        ctx.arc(x, py, 30, 0, Math.PI * 2);
         ctx.fill();
+      }
+
+      if (slashing && s.slashT > 6) {
+        ctx.fillStyle = raging ? "#fb923c" : "#f8fafc";
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 3;
+        ctx.font = "700 16px Bangers, Impact, sans-serif";
+        ctx.textAlign = "center";
+        ctx.strokeText("SNIKT!", x + face * 48, py - 48);
+        ctx.fillText("SNIKT!", x + face * 48, py - 48);
+        ctx.textAlign = "left";
       }
     };
 
@@ -578,28 +835,71 @@ export default function WolverineClaws({ ready, onEnter }: MiniGameProps) {
 
       const sky = ctx.createLinearGradient(0, 0, 0, s.h);
       if (s.berserkT > 0) {
-        sky.addColorStop(0, "#450a0a");
-        sky.addColorStop(1, "#7c2d12");
+        sky.addColorStop(0, "#1a0505");
+        sky.addColorStop(0.45, "#7f1d1d");
+        sky.addColorStop(1, "#431407");
       } else {
-        sky.addColorStop(0, "#1c1917");
-        sky.addColorStop(1, "#44403c");
+        sky.addColorStop(0, "#0c0a09");
+        sky.addColorStop(0.4, "#1c1917");
+        sky.addColorStop(1, "#292524");
       }
       ctx.fillStyle = sky;
       ctx.fillRect(0, 0, s.w, s.h);
 
-      // Brick alley
-      ctx.fillStyle = "#0c0a09";
-      ctx.fillRect(0, gY, s.w, s.h - gY);
-      for (let bx = 0; bx < s.w; bx += 28) {
-        ctx.strokeStyle = "rgba(68,64,60,0.35)";
-        ctx.strokeRect(bx, 0, 28, gY);
+      // Far alley depth + neon spill
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.fillRect(0, 0, s.w * 0.18, gY);
+      ctx.fillRect(s.w * 0.82, 0, s.w * 0.18, gY);
+      const neon = ctx.createLinearGradient(0, 0, s.w, 0);
+      neon.addColorStop(0, "rgba(234,179,8,0.08)");
+      neon.addColorStop(0.5, "transparent");
+      neon.addColorStop(1, "rgba(37,99,235,0.1)");
+      ctx.fillStyle = neon;
+      ctx.fillRect(0, 0, s.w, gY);
+
+      // Brick walls
+      for (let row = 0; row < gY; row += 16) {
+        const off = (row / 16) % 2 === 0 ? 0 : 14;
+        for (let bx = -14 + off; bx < s.w; bx += 28) {
+          ctx.fillStyle = row % 32 === 0 ? "#1c1917" : "#292524";
+          ctx.fillRect(bx, row, 26, 14);
+          ctx.strokeStyle = "rgba(0,0,0,0.4)";
+          ctx.strokeRect(bx, row, 26, 14);
+        }
       }
+      // Wet asphalt
+      const road = ctx.createLinearGradient(0, gY, 0, s.h);
+      road.addColorStop(0, "#1c1917");
+      road.addColorStop(1, "#0c0a09");
+      ctx.fillStyle = road;
+      ctx.fillRect(0, gY, s.w, s.h - gY);
       ctx.fillStyle = s.berserkT > 0 ? "#f97316" : "#eab308";
-      ctx.fillRect(0, gY, s.w, 3);
+      ctx.fillRect(0, gY, s.w, 2);
+      // Puddle reflections
+      ctx.fillStyle = "rgba(234,179,8,0.12)";
+      ctx.beginPath();
+      ctx.ellipse(s.w * 0.3, gY + 18, 40, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(59,130,246,0.1)";
+      ctx.beginPath();
+      ctx.ellipse(s.w * 0.7, gY + 22, 50, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Rain streaks
+      ctx.strokeStyle = "rgba(226,232,240,0.12)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 28; i++) {
+        const rx = ((i * 97 + s.frame * 3) % (s.w + 40)) - 20;
+        const ry = ((i * 53 + s.frame * 8) % (gY + 20));
+        ctx.beginPath();
+        ctx.moveTo(rx, ry);
+        ctx.lineTo(rx - 2, ry + 10);
+        ctx.stroke();
+      }
 
       // Live drag preview
       if (s.drag) {
-        ctx.strokeStyle = "rgba(226,232,240,0.5)";
+        ctx.strokeStyle = "rgba(226,232,240,0.55)";
         ctx.lineWidth = 2;
         ctx.setLineDash([6, 5]);
         ctx.beginPath();
@@ -609,58 +909,80 @@ export default function WolverineClaws({ ready, onEnter }: MiniGameProps) {
         ctx.setLineDash([]);
       }
 
-      // Claw trails
+      // Claw trails — metallic triple blades
       for (const t of s.trails) {
         const a = t.life / t.max;
         ctx.save();
         ctx.globalCompositeOperation = "lighter";
         ctx.globalAlpha = a;
-        ctx.strokeStyle = t.rage ? "#fdba74" : "#f1f5f9";
-        ctx.lineWidth = t.rage ? 6 : 3.5;
-        ctx.shadowColor = t.rage ? "#f97316" : "#94a3b8";
-        ctx.shadowBlur = 12;
-        ctx.lineCap = "round";
-        ctx.beginPath();
-        ctx.moveTo(t.x0, t.y0);
-        ctx.lineTo(t.x1, t.y1);
-        ctx.stroke();
-        // Triple claw parallel streaks
         const nx = -(t.y1 - t.y0);
         const ny = t.x1 - t.x0;
         const nl = Math.hypot(nx, ny) || 1;
-        const ox = (nx / nl) * 5;
-        const oy = (ny / nl) * 5;
-        ctx.lineWidth = t.rage ? 3 : 2;
-        ctx.beginPath();
-        ctx.moveTo(t.x0 + ox, t.y0 + oy);
-        ctx.lineTo(t.x1 + ox, t.y1 + oy);
-        ctx.moveTo(t.x0 - ox, t.y0 - oy);
-        ctx.lineTo(t.x1 - ox, t.y1 - oy);
-        ctx.stroke();
+        const ox = (nx / nl) * 6;
+        const oy = (ny / nl) * 6;
+        for (let k = -1; k <= 1; k++) {
+          ctx.strokeStyle = t.rage ? "#fdba74" : k === 0 ? "#f8fafc" : "#cbd5e1";
+          ctx.lineWidth = t.rage ? (k === 0 ? 5 : 2.5) : k === 0 ? 3.5 : 2;
+          ctx.shadowColor = t.rage ? "#f97316" : "#e2e8f0";
+          ctx.shadowBlur = t.rage ? 14 : 8;
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(t.x0 + ox * k, t.y0 + oy * k);
+          ctx.lineTo(t.x1 + ox * k, t.y1 + oy * k);
+          ctx.stroke();
+        }
         ctx.restore();
       }
 
       for (const f of s.foes) {
         const fy = gY - f.h + f.y;
-        const body = f.hitFlash > 0 ? "#fecaca" : f.kind === "brute" ? "#57534e" : f.kind === "leaper" ? "#78716c" : "#44403c";
-        ctx.fillStyle = body;
-        ctx.strokeStyle = "#0a0a0a";
-        ctx.lineWidth = 2;
-        roundRect(ctx, f.x - f.w / 2, fy + f.h * 0.25, f.w, f.h * 0.75, 4);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = "#f5c89a";
+        // Shadow
+        ctx.fillStyle = "rgba(0,0,0,0.3)";
         ctx.beginPath();
-        ctx.ellipse(f.x, fy + 6, f.kind === "brute" ? 9 : 7, f.kind === "brute" ? 9 : 7, 0, 0, Math.PI * 2);
+        ctx.ellipse(f.x, gY + 3, f.w * 0.55, 4, 0, 0, Math.PI * 2);
         ctx.fill();
+
+        const flash = f.hitFlash > 0;
         if (f.kind === "brute") {
-          ctx.fillStyle = "#292524";
-          ctx.fillRect(f.x - 8, fy + 2, 16, 5);
-        }
-        if (f.kind === "leaper" && f.y < -5) {
-          ctx.fillStyle = "rgba(234,179,8,0.35)";
+          ctx.fillStyle = flash ? "#fecaca" : "#44403c";
+          roundRect(ctx, f.x - f.w / 2, fy + 10, f.w, f.h - 10, 4);
+          ctx.fill();
+          ctx.fillStyle = "#1c1917";
+          roundRect(ctx, f.x - 12, fy, 24, 16, 3);
+          ctx.fill();
+          ctx.fillStyle = "#57534e";
+          ctx.fillRect(f.x - f.w / 2, fy + 18, f.w, 8);
+          ctx.fillStyle = "#f5c89a";
           ctx.beginPath();
-          ctx.ellipse(f.x, gY + 4, 14, 4, 0, 0, Math.PI * 2);
+          ctx.ellipse(f.x, fy + 8, 8, 8, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#0a0a0a";
+          ctx.fillRect(f.x - 7, fy + 6, 14, 3);
+        } else if (f.kind === "leaper") {
+          ctx.fillStyle = flash ? "#fecaca" : "#57534e";
+          roundRect(ctx, f.x - f.w / 2, fy + 8, f.w, f.h - 8, 5);
+          ctx.fill();
+          ctx.fillStyle = "#292524";
+          ctx.fillRect(f.x - f.w / 2, fy + 8, f.w, 6);
+          ctx.fillStyle = "#f5c89a";
+          ctx.beginPath();
+          ctx.ellipse(f.x, fy + 5, 7, 7, 0, 0, Math.PI * 2);
+          ctx.fill();
+          if (f.y < -5) {
+            ctx.fillStyle = "rgba(234,179,8,0.3)";
+            ctx.beginPath();
+            ctx.ellipse(f.x, gY + 4, 16, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else {
+          ctx.fillStyle = flash ? "#fecaca" : "#3f3f46";
+          roundRect(ctx, f.x - f.w / 2, fy + 8, f.w, f.h * 0.72, 3);
+          ctx.fill();
+          ctx.fillStyle = "#18181b";
+          ctx.fillRect(f.x - f.w / 2, fy + 8, f.w, 5);
+          ctx.fillStyle = "#f5c89a";
+          ctx.beginPath();
+          ctx.ellipse(f.x, fy + 4, 6.5, 6.5, 0, 0, Math.PI * 2);
           ctx.fill();
         }
       }
