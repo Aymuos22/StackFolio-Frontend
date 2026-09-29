@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import BatmanAlleyBrawl from "./loadingGames/BatmanAlleyBrawl";
 import GokuKamehameha from "./loadingGames/GokuKamehameha";
+import GreenLanternConstructs from "./loadingGames/GreenLanternConstructs";
 import IronManSkyGuard from "./loadingGames/IronManSkyGuard";
 import NarutoRasengan from "./loadingGames/NarutoRasengan";
 import SasukeChidori from "./loadingGames/SasukeChidori";
@@ -25,5 +26,6 @@ export default function LoadingGame({ ready = false, onEnter }: LoadingGameProps
   if (theme === "naruto") return <NarutoRasengan ready={ready} onEnter={onEnter} />;
   if (theme === "sasuke") return <SasukeChidori ready={ready} onEnter={onEnter} />;
   if (theme === "vegeta") return <VegetaPride ready={ready} onEnter={onEnter} />;
+  if (theme === "lantern") return <GreenLanternConstructs ready={ready} onEnter={onEnter} />;
   return <SpiderWebShooter ready={ready} onEnter={onEnter} />;
 }
