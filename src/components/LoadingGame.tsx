@@ -7,6 +7,7 @@ import NarutoRasengan from "./loadingGames/NarutoRasengan";
 import SasukeChidori from "./loadingGames/SasukeChidori";
 import { pickTheme } from "./loadingGames/shared";
 import SpiderWebShooter from "./loadingGames/SpiderWebShooter";
+import SupermanHeatFreeze from "./loadingGames/SupermanHeatFreeze";
 import VegetaPride from "./loadingGames/VegetaPride";
 
 type LoadingGameProps = {
@@ -27,5 +28,6 @@ export default function LoadingGame({ ready = false, onEnter }: LoadingGameProps
   if (theme === "sasuke") return <SasukeChidori ready={ready} onEnter={onEnter} />;
   if (theme === "vegeta") return <VegetaPride ready={ready} onEnter={onEnter} />;
   if (theme === "lantern") return <GreenLanternConstructs ready={ready} onEnter={onEnter} />;
+  if (theme === "superman") return <SupermanHeatFreeze ready={ready} onEnter={onEnter} />;
   return <SpiderWebShooter ready={ready} onEnter={onEnter} />;
 }

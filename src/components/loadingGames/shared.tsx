@@ -1,6 +1,15 @@
 import type { RefObject } from "react";
 
-export type ThemeId = "spider" | "batman" | "ironman" | "goku" | "naruto" | "sasuke" | "vegeta" | "lantern";
+export type ThemeId =
+  | "spider"
+  | "batman"
+  | "ironman"
+  | "goku"
+  | "naruto"
+  | "sasuke"
+  | "vegeta"
+  | "lantern"
+  | "superman";
 
 export type GameShellProps = {
   ready: boolean;
@@ -31,7 +40,17 @@ export type MiniGameProps = {
 };
 
 export function pickTheme(): ThemeId {
-  const themes: ThemeId[] = ["spider", "batman", "ironman", "goku", "naruto", "sasuke", "vegeta", "lantern"];
+  const themes: ThemeId[] = [
+    "spider",
+    "batman",
+    "ironman",
+    "goku",
+    "naruto",
+    "sasuke",
+    "vegeta",
+    "lantern",
+    "superman",
+  ];
   return themes[Math.floor(Math.random() * themes.length)]!;
 }
 
