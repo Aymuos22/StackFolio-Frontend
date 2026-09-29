@@ -9,6 +9,7 @@ import { pickTheme } from "./loadingGames/shared";
 import SpiderWebShooter from "./loadingGames/SpiderWebShooter";
 import SupermanHeatFreeze from "./loadingGames/SupermanHeatFreeze";
 import VegetaPride from "./loadingGames/VegetaPride";
+import WolverineClaws from "./loadingGames/WolverineClaws";
 
 type LoadingGameProps = {
   ready?: boolean;
@@ -29,5 +30,6 @@ export default function LoadingGame({ ready = false, onEnter }: LoadingGameProps
   if (theme === "vegeta") return <VegetaPride ready={ready} onEnter={onEnter} />;
   if (theme === "lantern") return <GreenLanternConstructs ready={ready} onEnter={onEnter} />;
   if (theme === "superman") return <SupermanHeatFreeze ready={ready} onEnter={onEnter} />;
+  if (theme === "wolverine") return <WolverineClaws ready={ready} onEnter={onEnter} />;
   return <SpiderWebShooter ready={ready} onEnter={onEnter} />;
 }

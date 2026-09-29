@@ -9,7 +9,8 @@ export type ThemeId =
   | "sasuke"
   | "vegeta"
   | "lantern"
-  | "superman";
+  | "superman"
+  | "wolverine";
 
 export type GameShellProps = {
   ready: boolean;
@@ -50,7 +51,13 @@ export function pickTheme(): ThemeId {
     "vegeta",
     "lantern",
     "superman",
+    "wolverine",
   ];
+  // Dev override: ?game=wolverine (or any ThemeId) on the portfolio URL
+  if (typeof window !== "undefined") {
+    const forced = new URLSearchParams(window.location.search).get("game");
+    if (forced && (themes as string[]).includes(forced)) return forced as ThemeId;
+  }
   return themes[Math.floor(Math.random() * themes.length)]!;
 }
 
@@ -186,7 +193,16 @@ export function roundRect(
   h: number,
   r: number,
 ) {
-  const radius = Math.min(r, w / 2, h / 2);
+  // Normalize negative sizes so callers can't crash the canvas with invalid arc radii
+  if (w < 0) {
+    x += w;
+    w = -w;
+  }
+  if (h < 0) {
+    y += h;
+    h = -h;
+  }
+  const radius = Math.max(0, Math.min(r, w / 2, h / 2));
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
   ctx.arcTo(x + w, y, x + w, y + h, radius);
