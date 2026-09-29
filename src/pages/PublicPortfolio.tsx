@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getPublicPortfolio } from "../api/portfolio";
 import EmptyState from "../components/EmptyState";
+import LoadingGame from "../components/LoadingGame";
 import { apiErrorMessage, initials, orderByDisplay } from "../lib/utils";
 import type { Portfolio } from "../types/portfolio";
 
@@ -251,6 +252,7 @@ export default function PublicPortfolio() {
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showLoadingGame, setShowLoadingGame] = useState(true);
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
@@ -259,6 +261,7 @@ export default function PublicPortfolio() {
     async function load() {
       if (!slug) return;
       setIsLoading(true);
+      setShowLoadingGame(true);
       setError("");
       try {
         const data = await getPublicPortfolio(slug);
@@ -274,6 +277,7 @@ export default function PublicPortfolio() {
       } catch (requestError) {
         if (!active) return;
         setError(apiErrorMessage(requestError, "Unable to load public portfolio."));
+        setShowLoadingGame(false);
       } finally {
         if (active) setIsLoading(false);
       }
@@ -294,11 +298,12 @@ export default function PublicPortfolio() {
     return Array.from(grouped.entries());
   }, [portfolio?.technicalSkills]);
 
-  if (isLoading) {
+  if (isLoading || (showLoadingGame && portfolio && !error)) {
     return (
-      <main className="comic-page flex min-h-screen items-center justify-center">
-        <div className="comic-caption px-6 py-4 font-comic text-3xl">Loading…</div>
-      </main>
+      <LoadingGame
+        ready={!isLoading && Boolean(portfolio)}
+        onEnter={() => setShowLoadingGame(false)}
+      />
     );
   }
 
