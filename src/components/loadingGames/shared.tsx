@@ -10,7 +10,8 @@ export type ThemeId =
   | "vegeta"
   | "lantern"
   | "superman"
-  | "wolverine";
+  | "wolverine"
+  | "fma";
 
 export type GameShellProps = {
   ready: boolean;
@@ -52,8 +53,9 @@ export function pickTheme(): ThemeId {
     "lantern",
     "superman",
     "wolverine",
+    "fma",
   ];
-  // Dev override: ?game=wolverine (or any ThemeId) on the portfolio URL
+  // Dev override: ?game=fma (or any ThemeId) on the portfolio URL
   if (typeof window !== "undefined") {
     const forced = new URLSearchParams(window.location.search).get("game");
     if (forced && (themes as string[]).includes(forced)) return forced as ThemeId;

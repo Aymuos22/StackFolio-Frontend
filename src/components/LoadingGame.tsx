@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import BatmanAlleyBrawl from "./loadingGames/BatmanAlleyBrawl";
+import FullmetalAlchemy from "./loadingGames/FullmetalAlchemy";
 import GokuKamehameha from "./loadingGames/GokuKamehameha";
 import GreenLanternConstructs from "./loadingGames/GreenLanternConstructs";
 import IronManSkyGuard from "./loadingGames/IronManSkyGuard";
@@ -31,5 +32,6 @@ export default function LoadingGame({ ready = false, onEnter }: LoadingGameProps
   if (theme === "lantern") return <GreenLanternConstructs ready={ready} onEnter={onEnter} />;
   if (theme === "superman") return <SupermanHeatFreeze ready={ready} onEnter={onEnter} />;
   if (theme === "wolverine") return <WolverineClaws ready={ready} onEnter={onEnter} />;
+  if (theme === "fma") return <FullmetalAlchemy ready={ready} onEnter={onEnter} />;
   return <SpiderWebShooter ready={ready} onEnter={onEnter} />;
 }
