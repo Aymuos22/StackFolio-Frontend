@@ -221,4 +221,13 @@ select {
   .comic-ink-bleed {
     filter: contrast(1.05) saturate(1.15);
   }
+
+  @keyframes fbi-scan {
+    0% {
+      top: -10%;
+    }
+    100% {
+      top: 110%;
+    }
+  }
 }

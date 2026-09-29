@@ -6,6 +6,7 @@ import { Link, useParams } from "react-router-dom";
 import { getPublicPortfolio } from "../api/portfolio";
 import EmptyState from "../components/EmptyState";
 import LoadingGame from "../components/LoadingGame";
+import RecoveringProfileImage from "../components/RecoveringProfileImage";
 import { apiErrorMessage, initials, orderByDisplay } from "../lib/utils";
 import type { Portfolio } from "../types/portfolio";
 
@@ -402,7 +403,7 @@ export default function PublicPortfolio() {
           >
             <div className="comic-panel comic-panel-pink comic-jagged relative overflow-hidden">
               {portfolio.profileImageUrl ? (
-                <img src={portfolio.profileImageUrl} alt={portfolio.fullName} className="aspect-[4/5] w-full object-cover" />
+                <RecoveringProfileImage src={portfolio.profileImageUrl} name={portfolio.fullName} primary={primary} />
               ) : (
                 <div
                   className="flex aspect-[4/5] items-center justify-center text-7xl font-comic text-white sm:text-8xl"
