@@ -7,6 +7,7 @@ export type ThemeId =
   | "goku"
   | "naruto"
   | "sasuke"
+  | "obito"
   | "vegeta"
   | "lantern"
   | "superman"
@@ -50,6 +51,7 @@ export function pickTheme(): ThemeId {
     "goku",
     "naruto",
     "sasuke",
+    "obito",
     "vegeta",
     "lantern",
     "superman",

@@ -6,6 +6,7 @@ import GokuKamehameha from "./loadingGames/GokuKamehameha";
 import GreenLanternConstructs from "./loadingGames/GreenLanternConstructs";
 import IronManSkyGuard from "./loadingGames/IronManSkyGuard";
 import NarutoRasengan from "./loadingGames/NarutoRasengan";
+import ObitoKamui from "./loadingGames/ObitoKamui";
 import SasukeChidori from "./loadingGames/SasukeChidori";
 import { pickTheme } from "./loadingGames/shared";
 import SpiderWebShooter from "./loadingGames/SpiderWebShooter";
@@ -29,6 +30,7 @@ export default function LoadingGame({ ready = false, onEnter }: LoadingGameProps
   if (theme === "goku") return <GokuKamehameha ready={ready} onEnter={onEnter} />;
   if (theme === "naruto") return <NarutoRasengan ready={ready} onEnter={onEnter} />;
   if (theme === "sasuke") return <SasukeChidori ready={ready} onEnter={onEnter} />;
+  if (theme === "obito") return <ObitoKamui ready={ready} onEnter={onEnter} />;
   if (theme === "vegeta") return <VegetaPride ready={ready} onEnter={onEnter} />;
   if (theme === "lantern") return <GreenLanternConstructs ready={ready} onEnter={onEnter} />;
   if (theme === "superman") return <SupermanHeatFreeze ready={ready} onEnter={onEnter} />;
