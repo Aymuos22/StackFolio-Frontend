@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import { useEffect, useState, type RefObject } from "react";
 
 export type ThemeId =
   | "spider"
@@ -121,9 +121,100 @@ export function GameShell({
   canvasRef,
   ariaLabel,
 }: GameShellProps) {
+  const [showToast, setShowToast] = useState(true);
+  const [showReadyModal, setShowReadyModal] = useState(false);
+  const [keptPlaying, setKeptPlaying] = useState(false);
+
+  // Free-tier toast — auto-dismiss
+  useEffect(() => {
+    if (!showToast) return;
+    const t = window.setTimeout(() => setShowToast(false), 7000);
+    return () => window.clearTimeout(t);
+  }, [showToast]);
+
+  // When portfolio finishes loading, ask keep playing vs enter
+  useEffect(() => {
+    if (ready && !keptPlaying) {
+      setShowReadyModal(true);
+      setShowToast(false);
+    }
+  }, [ready, keptPlaying]);
+
+  const keepPlaying = () => {
+    setShowReadyModal(false);
+    setKeptPlaying(true);
+  };
+
   return (
-    <main className="comic-page flex min-h-[100svh] flex-col items-center justify-start px-3 py-4 sm:justify-center sm:px-4 sm:py-8">
+    <main className="comic-page relative flex min-h-[100svh] flex-col items-center justify-start px-3 py-4 sm:justify-center sm:px-4 sm:py-8">
       <div className="comic-speedlines pointer-events-none fixed inset-0 opacity-50" aria-hidden="true" />
+
+      {/* Free-tier toast */}
+      {showToast && !showReadyModal && (
+        <div
+          role="status"
+          className="fixed bottom-4 left-1/2 z-40 w-[min(92vw,28rem)] -translate-x-1/2 border-4 border-comic-ink bg-comic-cream px-3 py-3 shadow-comic sm:bottom-6 sm:px-4"
+        >
+          <div className="flex items-start gap-3">
+            <span
+              className="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 animate-pulse rounded-full"
+              style={{ backgroundColor: accent }}
+              aria-hidden="true"
+            />
+            <p className="flex-1 font-comic-body text-xs font-bold leading-snug text-comic-ink sm:text-sm">
+              This app is deployed on free tier so it may take some time — but enjoy the game!
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowToast(false)}
+              className="shrink-0 font-comic text-lg leading-none text-comic-ink/50 hover:text-comic-ink"
+              aria-label="Dismiss notice"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Portfolio ready modal */}
+      {showReadyModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-comic-ink/55 px-4 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="portfolio-ready-title"
+        >
+          <div className="w-full max-w-md border-4 border-comic-ink bg-comic-cream p-5 shadow-comic-pink sm:p-6">
+            <p className="comic-caption inline-block -rotate-1 px-2 py-1 text-[10px] font-bold uppercase">
+              Portfolio ready
+            </p>
+            <h2 id="portfolio-ready-title" className="comic-title mt-3 text-3xl leading-none text-comic-ink sm:text-4xl">
+              Dossier unlocked!
+            </h2>
+            <p className="mt-3 font-comic-body text-sm font-bold leading-snug text-comic-ink/75 sm:text-base">
+              Your portfolio finished loading. Keep playing this mini-game, or head in now — if you leave, you&apos;ll
+              go straight to the portfolio.
+            </p>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:gap-3">
+              <button
+                type="button"
+                onClick={keepPlaying}
+                className="flex-1 border-4 border-comic-ink bg-white px-4 py-3 font-comic text-lg tracking-wide text-comic-ink shadow-comic"
+              >
+                Keep playing
+              </button>
+              <button
+                type="button"
+                onClick={onEnter}
+                className="comic-burst flex-1 px-4 py-3 font-comic text-lg tracking-wide text-white"
+                style={{ backgroundColor: accent }}
+              >
+                Open portfolio →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="relative z-10 w-full max-w-3xl">
         <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
@@ -134,9 +225,6 @@ export function GameShell({
             <h1 className="comic-title mt-2 text-[2rem] leading-none text-comic-ink sm:text-5xl">{title}</h1>
             <p className="mt-1 hidden font-comic-body text-sm font-bold text-comic-ink/70 sm:block">{tagline}</p>
             <p className="mt-1 font-comic-body text-xs font-bold text-comic-ink/70 sm:hidden">{mobileTagline ?? tagline}</p>
-            <p className="mt-2 max-w-xl font-comic-body text-[11px] font-bold leading-snug text-comic-ink/55 sm:text-xs">
-              This app is deployed on free tier so it may take some time — but enjoy the game!
-            </p>
           </div>
           <div className="grid grid-cols-3 gap-2 sm:flex">
             <div className="border-4 border-comic-ink px-2 py-1.5 text-white shadow-comic sm:px-3 sm:py-2" style={{ backgroundColor: accent }}>
