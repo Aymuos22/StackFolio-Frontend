@@ -134,6 +134,9 @@ export function GameShell({
             <h1 className="comic-title mt-2 text-[2rem] leading-none text-comic-ink sm:text-5xl">{title}</h1>
             <p className="mt-1 hidden font-comic-body text-sm font-bold text-comic-ink/70 sm:block">{tagline}</p>
             <p className="mt-1 font-comic-body text-xs font-bold text-comic-ink/70 sm:hidden">{mobileTagline ?? tagline}</p>
+            <p className="mt-2 max-w-xl font-comic-body text-[11px] font-bold leading-snug text-comic-ink/55 sm:text-xs">
+              This app is deployed on free tier so it may take some time — but enjoy the game!
+            </p>
           </div>
           <div className="grid grid-cols-3 gap-2 sm:flex">
             <div className="border-4 border-comic-ink px-2 py-1.5 text-white shadow-comic sm:px-3 sm:py-2" style={{ backgroundColor: accent }}>
