@@ -166,18 +166,54 @@ export default function SpiderWebShooter({ ready, onEnter }: MiniGameProps) {
       s.cool = s.senseT > 0 ? 7 : 12;
       s.shootT = 10;
       burst(hand.x, hand.y, "#f8fafc", burstShot ? 10 : 5, 2);
+      if (burstShot) {
+        s.announce = "WEB BURST!";
+        s.announceT = 28;
+      }
+    };
+
+    const fireWebStorm = () => {
+      const s = state.current;
+      if (!s.alive || s.cool > 4) return;
+      const hand = handPos();
+      s.announce = "WEB STORM!";
+      s.announceT = 40;
+      s.shake = 12;
+      s.shootT = 16;
+      s.cool = 18;
+      // Fan of webs across the skyline
+      for (let i = 0; i < 9; i++) {
+        const ang = -0.55 + (i / 8) * 1.1;
+        const speed = 12 + (i % 3);
+        s.shots.push({
+          x: hand.x,
+          y: hand.y,
+          vx: Math.cos(ang) * speed,
+          vy: Math.sin(ang) * speed,
+          life: 50,
+          big: true,
+        });
+      }
+      burst(hand.x, hand.y, "#e0f2fe", 24, 3.5);
+      burst(hand.x, hand.y, "#fb7185", 14, 2.5);
+      s.combo = 0;
+      s.comboT = 0;
     };
 
     const trySense = () => {
       const s = state.current;
-      if (s.sense < 100 || s.senseT > 0) return;
+      if (s.sense < 100 || s.senseT > 0) return false;
       s.sense = 0;
       setSense(0);
       s.senseT = 200;
       s.announce = "SPIDER-SENSE!";
-      s.announceT = 45;
-      s.shake = 8;
+      s.announceT = 48;
+      s.shake = 10;
+      // Slow-mo vibe: freeze villains briefly via webbed
+      for (const v of s.villains) v.webbed = Math.max(v.webbed, 50);
+      burst(PX + 20, heroY() + 20, "#38bdf8", 28, 4);
       fire(true);
+      return true;
     };
 
     const toCanvas = (e: PointerEvent) => {
@@ -556,9 +592,18 @@ export default function SpiderWebShooter({ ready, onEnter }: MiniGameProps) {
                 s.shake = 6;
                 setKills(s.kills);
                 setScore(s.score);
-                if (s.sense >= 100 && s.senseT <= 0) {
-                  s.announce = "SENSE READY!";
-                  s.announceT = 35;
+                if (s.combo === 3) {
+                  s.announce = "NICE THWIP!";
+                  s.announceT = 28;
+                } else if (s.combo === 5) {
+                  s.announce = "COMBO x5 — STORM READY!";
+                  s.announceT = 36;
+                } else if (s.combo >= 8) {
+                  s.announce = "FRIENDLY NEIGHBORHOOD!";
+                  s.announceT = 32;
+                } else if (s.sense >= 100 && s.senseT <= 0) {
+                  s.announce = "SENSE CHARGED — TAP!";
+                  s.announceT = 36;
                 }
               }
             }
@@ -729,13 +774,18 @@ export default function SpiderWebShooter({ ready, onEnter }: MiniGameProps) {
       ctx.textAlign = "left";
 
       if (s.announceT > 0) {
-        ctx.fillStyle = "rgba(0,0,0,0.4)";
-        ctx.fillRect(0, s.h * 0.22, s.w, 36);
-        ctx.fillStyle = s.announce.includes("SENSE") ? "#38bdf8" : "#fb7185";
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
+        ctx.fillRect(0, s.h * 0.22, s.w, 40);
+        ctx.fillStyle =
+          s.announce.includes("SENSE") || s.announce.includes("STORM")
+            ? "#38bdf8"
+            : s.announce.includes("FRIENDLY") || s.announce.includes("COMBO")
+              ? "#fbbf24"
+              : "#fb7185";
         ctx.font = `700 ${Math.round(20 * hs)}px Bangers, Impact, sans-serif`;
         ctx.textAlign = "center";
-        ctx.strokeText(s.announce, s.w / 2, s.h * 0.22 + 26);
-        ctx.fillText(s.announce, s.w / 2, s.h * 0.22 + 26);
+        ctx.strokeText(s.announce, s.w / 2, s.h * 0.22 + 28);
+        ctx.fillText(s.announce, s.w / 2, s.h * 0.22 + 28);
         ctx.textAlign = "left";
       }
 
@@ -743,7 +793,7 @@ export default function SpiderWebShooter({ ready, onEnter }: MiniGameProps) {
         ctx.fillStyle = "rgba(255,255,255,0.75)";
         ctx.font = `700 ${Math.round(12 * hs)}px Comic Neue, sans-serif`;
         ctx.textAlign = "center";
-        ctx.fillText(s.w < 500 ? "Aim + tap to thwip! C = Sense" : "Aim with mouse · click/Space to fire · C for Spider-Sense", s.w / 2, s.h * 0.18);
+        ctx.fillText(s.w < 500 ? "Tap to thwip · Sense & Storm auto!" : "Aim + tap to thwip · fill Sense for burst · x5 combo = Web Storm", s.w / 2, s.h * 0.18);
         ctx.textAlign = "left";
       }
 
@@ -769,12 +819,11 @@ export default function SpiderWebShooter({ ready, onEnter }: MiniGameProps) {
       if (e.code === "Space") {
         e.preventDefault();
         if (e.repeat) return;
-        fire();
-      }
-      if (e.code === "KeyC" || e.code === "KeyV") {
-        e.preventDefault();
         if (!state.current.alive) return reset();
-        trySense();
+        // Tap-only specials: Sense when charged, Web Storm at x5 combo
+        if (state.current.sense >= 100) trySense();
+        else if (state.current.combo >= 5) fireWebStorm();
+        else fire();
       }
       if (e.code === "Enter" && readyRef.current) onEnterRef.current();
     };
@@ -791,17 +840,11 @@ export default function SpiderWebShooter({ ready, onEnter }: MiniGameProps) {
         /* ignore */
       }
       toCanvas(e);
-      // Tap sense meter area on mobile
-      const r = canvas.getBoundingClientRect();
-      const y = ((e.clientY - r.top) / r.height) * state.current.h;
-      const x = ((e.clientX - r.left) / r.width) * state.current.w;
-      const meterW = Math.min(state.current.w - 40, 200);
-      const meterX = (state.current.w - meterW) / 2;
-      if (y < 28 && x >= meterX && x <= meterX + meterW && state.current.sense >= 100) {
-        trySense();
-        return;
-      }
-      fire();
+      if (!state.current.alive) return reset();
+      // Everything on tap — no buttons
+      if (state.current.sense >= 100) trySense();
+      else if (state.current.combo >= 5) fireWebStorm();
+      else fire();
     };
 
     resize();
@@ -826,10 +869,10 @@ export default function SpiderWebShooter({ ready, onEnter }: MiniGameProps) {
       ready={ready}
       onEnter={onEnter}
       title="Web Shooter"
-      tagline="Aim and thwip · combos · fill Spider-Sense for a web burst"
-      mobileTagline="Tap to shoot · fill Sense meter"
+      tagline="Aim + tap · Spider-Sense & Web Storm auto on tap"
+      mobileTagline="Tap to thwip · specials auto"
       strip="THWIP MODE"
-      stripHint={sense >= 100 ? "Sense ready — tap meter / C!" : `Sense ${sense}%`}
+      stripHint={sense >= 100 ? "Sense charged — tap!" : `Sense ${sense}%`}
       loadingLabel="Villains inbound… loading portfolio"
       readyLabel="City clear — open the issue"
       accent="#e10600"
@@ -839,7 +882,7 @@ export default function SpiderWebShooter({ ready, onEnter }: MiniGameProps) {
       secondaryValue={kills}
       best={best}
       alive={alive}
-      aliveHint="Aim with mouse, click / Space to fire. Webs slow foes. Fill Sense (C or tap meter) for a triple burst."
+      aliveHint="Aim and tap to thwip. Fill Sense → next tap = Spider-Sense. x5 combo → next tap = Web Storm. No buttons."
       deadHint="Webbed out! Tap to fight again."
       canvasRef={canvasRef}
       ariaLabel="Spider-Man web shooter mini-game"

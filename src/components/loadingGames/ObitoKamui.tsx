@@ -8,7 +8,8 @@ type Enemy = {
   vy: number;
   hp: number;
   r: number;
-  kind: "orb" | "blade" | "beast";
+  kind: "paper" | "blade" | "beast";
+  rot: number;
   hitFlash: number;
   dieT: number; // >0 death anim
   dieKind: "" | "wood" | "juubi";
@@ -793,13 +794,36 @@ export default function ObitoKamui({ ready, onEnter }: MiniGameProps) {
         ctx.arc(4, -2, 2, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        const g = ctx.createRadialGradient(-2, -2, 1, 0, 0, e.r);
-        g.addColorStop(0, flash ? "#fecaca" : "#86efac");
-        g.addColorStop(0.6, flash ? "#f87171" : "#166534");
-        g.addColorStop(1, "#052e16");
-        ctx.fillStyle = g;
+        // Explosive tag / paper bomb — only threat that homes on Obito
+        ctx.rotate(e.rot);
+        ctx.fillStyle = flash ? "#fecaca" : "#f5f0e6";
+        ctx.strokeStyle = flash ? "#ef4444" : "#7c2d12";
+        ctx.lineWidth = 1.4;
         ctx.beginPath();
-        ctx.arc(0, 0, e.r, 0, Math.PI * 2);
+        ctx.moveTo(-e.r * 0.85, -e.r * 0.95);
+        ctx.lineTo(e.r * 0.85, -e.r * 0.75);
+        ctx.lineTo(e.r * 0.75, e.r * 0.95);
+        ctx.lineTo(-e.r * 0.9, e.r * 0.8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.strokeStyle = flash ? "#f87171" : "#b91c1c";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-e.r * 0.35, -e.r * 0.45);
+        ctx.lineTo(e.r * 0.35, e.r * 0.45);
+        ctx.moveTo(e.r * 0.35, -e.r * 0.45);
+        ctx.lineTo(-e.r * 0.35, e.r * 0.45);
+        ctx.stroke();
+        ctx.fillStyle = flash ? "#ef4444" : "#991b1b";
+        ctx.font = "700 8px Comic Neue, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("爆", 0, 3);
+        ctx.textAlign = "left";
+        // Fuse spark
+        ctx.fillStyle = "#fbbf24";
+        ctx.beginPath();
+        ctx.arc(e.r * 0.55, -e.r * 0.85, 2.2 + Math.sin(state.current.frame / 3) * 0.8, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
@@ -879,7 +903,8 @@ export default function ObitoKamui({ ready, onEnter }: MiniGameProps) {
       if (s.alive) {
         if (--s.spawnIn <= 0) {
           const roll = Math.random();
-          const kind: Enemy["kind"] = roll < 0.2 ? "beast" : roll < 0.45 ? "blade" : "orb";
+          // Paper bombs (majority) home on Obito; blades/beasts fly straight — never seek
+          const kind: Enemy["kind"] = roll < 0.18 ? "beast" : roll < 0.4 ? "blade" : "paper";
           const edge = Math.floor(Math.random() * 4);
           let x = 0;
           let y = 0;
@@ -896,18 +921,43 @@ export default function ObitoKamui({ ready, onEnter }: MiniGameProps) {
             x = -20;
             y = Math.random() * s.h;
           }
-          const speed = 1.15 + Math.min(2, s.score * 0.0025) + Math.random() * 0.6;
-          const dx = s.x - x;
-          const dy = s.y - y;
-          const len = Math.hypot(dx, dy) || 1;
+          const speed =
+            kind === "paper"
+              ? 1.35 + Math.min(2.1, s.score * 0.0028) + Math.random() * 0.55
+              : kind === "blade"
+                ? 2.4 + Math.random() * 1.2
+                : 1.5 + Math.random() * 0.7;
+          let vx = 0;
+          let vy = 0;
+          if (kind === "paper") {
+            const dx = s.x - x;
+            const dy = s.y - y;
+            const len = Math.hypot(dx, dy) || 1;
+            vx = (dx / len) * speed;
+            vy = (dy / len) * speed;
+          } else if (kind === "blade") {
+            // Straight shot across the void (aimed once at spawn, never steers)
+            const aimX = s.x + (Math.random() - 0.5) * 80;
+            const aimY = s.y + (Math.random() - 0.5) * 80;
+            const dx = aimX - x;
+            const dy = aimY - y;
+            const len = Math.hypot(dx, dy) || 1;
+            vx = (dx / len) * speed;
+            vy = (dy / len) * speed;
+          } else {
+            // Beast drifts diagonally, no homing
+            vx = (x < s.w / 2 ? 1 : -1) * speed;
+            vy = (Math.random() - 0.5) * speed * 0.7;
+          }
           s.enemies.push({
             x,
             y,
-            vx: (dx / len) * speed,
-            vy: (dy / len) * speed,
+            vx,
+            vy,
             hp: kind === "beast" ? 3 : 1,
-            r: kind === "beast" ? 16 : kind === "blade" ? 10 : 12,
+            r: kind === "beast" ? 16 : kind === "blade" ? 10 : 11,
             kind,
+            rot: Math.random() * Math.PI * 2,
             hitFlash: 0,
             dieT: 0,
             dieKind: "",
@@ -926,17 +976,22 @@ export default function ObitoKamui({ ready, onEnter }: MiniGameProps) {
             }
             continue;
           }
-          const dx = s.x - e.x;
-          const dy = s.y - e.y;
-          const len = Math.hypot(dx, dy) || 1;
-          const steer = e.kind === "blade" ? 0.085 : 0.05;
-          e.vx += (dx / len) * steer;
-          e.vy += (dy / len) * steer;
-          const sp = Math.hypot(e.vx, e.vy) || 1;
-          const maxSp = e.kind === "blade" ? 3.9 : e.kind === "beast" ? 2.3 : 2.9;
-          if (sp > maxSp) {
-            e.vx = (e.vx / sp) * maxSp;
-            e.vy = (e.vy / sp) * maxSp;
+          // ONLY paper bombs follow Obito — blades & beasts keep straight velocity
+          if (e.kind === "paper") {
+            const dx = s.x - e.x;
+            const dy = s.y - e.y;
+            const len = Math.hypot(dx, dy) || 1;
+            e.vx += (dx / len) * 0.07;
+            e.vy += (dy / len) * 0.07;
+            const sp = Math.hypot(e.vx, e.vy) || 1;
+            const maxSp = 3.1;
+            if (sp > maxSp) {
+              e.vx = (e.vx / sp) * maxSp;
+              e.vy = (e.vy / sp) * maxSp;
+            }
+            e.rot += 0.12;
+          } else if (e.kind === "beast") {
+            e.vy += Math.sin(s.frame / 18 + e.x * 0.01) * 0.04;
           }
           e.x += e.vx;
           e.y += e.vy;

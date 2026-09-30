@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { fitGameCanvas, GameShell, hudScale, roundRect, type MiniGameProps } from "./shared";
 
-type Enemy = { x: number; y: number; vx: number; vy: number; hp: number; r: number; hitFlash: number };
-type Blast = { x: number; y: number; vx: number; vy: number; r: number; life: number; ego: boolean };
+type Enemy = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  hp: number;
+  r: number;
+  hitFlash: number;
+  kind: 0 | 1 | 2; // saibaman · frieza force · cell jr
+};
+type Blast = { x: number; y: number; vx: number; vy: number; r: number; life: number; ego: boolean; galick?: boolean };
 type Particle = { x: number; y: number; vx: number; vy: number; life: number; color: string; size: number };
 type Form = "base" | "ssj" | "ultraEgo";
 
@@ -60,9 +69,6 @@ export default function VegetaPride({ ready, onEnter }: MiniGameProps) {
     let raf = 0;
     let running = true;
 
-    const btnSsj = () => ({ x: state.current.w - 108, y: state.current.h - 52, w: 44, h: 36 });
-    const btnEgo = () => ({ x: state.current.w - 56, y: state.current.h - 52, w: 44, h: 36 });
-
     const resize = () => {
       const { w, h } = fitGameCanvas(canvas);
       state.current.w = w;
@@ -117,52 +123,84 @@ export default function VegetaPride({ ready, onEnter }: MiniGameProps) {
 
     const activateSsj = () => {
       const s = state.current;
-      if (!s.alive || s.specialCd > 0 || s.ssjT > 0 || s.egoT > 0) return;
-      if (s.pride < 50) {
-        s.announce = "NEED 50 PRIDE!";
-        s.announceT = 35;
-        return;
-      }
+      if (!s.alive || s.specialCd > 0 || s.ssjT > 0 || s.egoT > 0) return false;
+      if (s.pride < 50) return false;
       s.pride -= 50;
       setPride(s.pride);
-      s.ssjT = 260;
-      s.specialCd = 18;
-      s.shake = 8;
+      s.ssjT = 280;
+      s.specialCd = 12;
+      s.shake = 10;
       s.announce = "SUPER SAIYAN!";
       s.announceT = 55;
-      burst(s.x, s.y, "#facc15", 26, 4);
+      burst(s.x, s.y, "#facc15", 32, 4.5);
+      burst(s.x, s.y, "#fef08a", 16, 3);
       syncForm();
+      return true;
     };
 
     const activateEgo = () => {
       const s = state.current;
-      if (!s.alive || s.specialCd > 0 || s.egoT > 0) return;
-      if (s.pride < 100) {
-        s.announce = "NEED 100 PRIDE!";
-        s.announceT = 35;
-        return;
-      }
+      if (!s.alive || s.specialCd > 0 || s.egoT > 0) return false;
+      if (s.pride < 100) return false;
       s.pride = 0;
       setPride(0);
       s.ssjT = 0;
-      s.egoT = 280;
-      s.specialCd = 22;
-      s.shake = 12;
+      s.egoT = 300;
+      s.specialCd = 14;
+      s.shake = 14;
       s.announce = "ULTRA EGO!";
       s.announceT = 60;
-      burst(s.x, s.y, "#e879f9", 28, 4);
-      burst(s.x, s.y, "#86198f", 14, 3);
+      burst(s.x, s.y, "#e879f9", 34, 4.5);
+      burst(s.x, s.y, "#86198f", 18, 3.5);
       syncForm();
+      return true;
+    };
+
+    const fireGalickGun = () => {
+      const s = state.current;
+      if (!s.alive) return;
+      s.announce = "GALICK GUN!";
+      s.announceT = 42;
+      s.shake = 14;
+      s.cooldown = 22;
+      // Big purple beam wave
+      for (let i = 0; i < 7; i++) {
+        s.blasts.push({
+          x: s.x + 24,
+          y: s.y + (i - 3) * 7,
+          vx: 10 + i * 0.15,
+          vy: (i - 3) * 0.35,
+          r: 10 + Math.abs(i - 3),
+          life: 55,
+          ego: false,
+          galick: true,
+        });
+      }
+      burst(s.x + 30, s.y, "#a78bfa", 22, 4);
+      burst(s.x + 30, s.y, "#c4b5fd", 14, 3);
     };
 
     const fire = () => {
       const s = state.current;
       if (!s.alive) return reset();
+      // Tap-driven power-ups — no buttons
+      if (s.pride >= 100 && s.egoT <= 0) {
+        if (activateEgo()) return;
+      } else if (s.pride >= 50 && s.ssjT <= 0 && s.egoT <= 0) {
+        if (activateSsj()) return;
+      }
       if (s.cooldown > 0) return;
+      // Occasional Galick Gun when SSJ and pride mid-range
+      if (s.ssjT > 0 && s.pride >= 25 && Math.random() < 0.12) {
+        s.pride = Math.max(0, s.pride - 25);
+        setPride(s.pride);
+        fireGalickGun();
+        return;
+      }
       const ego = s.egoT > 0;
       const ssj = s.ssjT > 0;
-      const speed = ego ? 9 : ssj ? 8.5 : 7.5;
-      const spread = ego ? 0.18 : ssj ? 0.1 : 0.05;
+      const speed = ego ? 9.5 : ssj ? 8.8 : 7.5;
+      const spread = ego ? 0.2 : ssj ? 0.12 : 0.05;
       const count = ego ? 3 : ssj ? 2 : 1;
       for (let i = 0; i < count; i++) {
         const ang = (i - (count - 1) / 2) * spread;
@@ -240,28 +278,60 @@ export default function VegetaPride({ ready, onEnter }: MiniGameProps) {
       ctx.ellipse(x, y - 22, 10, 11, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Tall widow's-peak hair
-      ctx.fillStyle = hairColor(f);
+      // Iconic tall widow's-peak hair — layered spikes
+      const hc = hairColor(f);
+      ctx.fillStyle = hc;
+      // Base scalp / widow's peak
+      ctx.beginPath();
+      ctx.moveTo(x - 11, y - 24);
+      ctx.quadraticCurveTo(x - 12, y - 34, x - 2, y - 36);
+      ctx.lineTo(x, y - 28);
+      ctx.lineTo(x + 2, y - 36);
+      ctx.quadraticCurveTo(x + 12, y - 34, x + 11, y - 24);
+      ctx.closePath();
+      ctx.fill();
+      // Tall center spike (Vegeta signature)
+      ctx.beginPath();
+      ctx.moveTo(x - 3, y - 30);
+      ctx.lineTo(x - 1, y - (f === "base" ? 54 : 68));
+      ctx.lineTo(x + 4, y - 32);
+      ctx.closePath();
+      ctx.fill();
+      // Side spikes sweeping back
       const spikes =
         f === "base"
           ? [
-              [-6, -28, -8, -50, 0, -30],
-              [0, -32, 2, -56, 6, -30],
-              [4, -28, 12, -48, 10, -26],
-              [-10, -24, -14, -38, -4, -26],
+              [-8, -28, -14, -48, -2, -30],
+              [5, -28, 8, -52, 10, -28],
+              [-11, -24, -18, -40, -6, -26],
+              [8, -24, 16, -42, 11, -24],
+              [-4, -32, -6, -50, 2, -34],
+              [2, -34, 4, -56, 7, -32],
             ]
           : [
-              [-7, -30, -10, -58, 0, -32],
-              [-1, -34, 0, -64, 6, -32],
-              [4, -30, 10, -58, 10, -28],
-              [8, -26, 18, -46, 12, -24],
-              [-12, -24, -18, -42, -5, -26],
+              [-9, -30, -16, -58, -1, -32],
+              [-2, -34, -2, -72, 5, -34],
+              [4, -32, 8, -64, 10, -30],
+              [8, -28, 18, -52, 12, -26],
+              [-12, -26, -20, -46, -5, -28],
+              [10, -26, 22, -44, 14, -24],
+              [-6, -36, -8, -62, 2, -38],
             ];
       for (const [a, b, c, d, e, f2] of spikes) {
         ctx.beginPath();
         ctx.moveTo(x + a, y + b);
         ctx.lineTo(x + c, y + d);
         ctx.lineTo(x + e, y + f2);
+        ctx.closePath();
+        ctx.fill();
+      }
+      // Highlight sheen on hair
+      if (f !== "base") {
+        ctx.fillStyle = f === "ssj" ? "rgba(254,249,195,0.45)" : "rgba(252,231,243,0.4)";
+        ctx.beginPath();
+        ctx.moveTo(x - 1, y - 34);
+        ctx.lineTo(x, y - (f === "ssj" ? 60 : 66));
+        ctx.lineTo(x + 3, y - 36);
         ctx.closePath();
         ctx.fill();
       }
@@ -303,18 +373,89 @@ export default function VegetaPride({ ready, onEnter }: MiniGameProps) {
       }
     };
 
-    const drawBtn = (b: { x: number; y: number; w: number; h: number }, label: string, on: boolean, color: string) => {
-      ctx.fillStyle = on ? color : "rgba(30,41,59,0.7)";
-      ctx.strokeStyle = on ? "#fff" : "#64748b";
-      ctx.lineWidth = 2;
-      roundRect(ctx, b.x, b.y, b.w, b.h, 6);
-      ctx.fill();
-      ctx.stroke();
-      ctx.fillStyle = "#fff";
-      ctx.font = "700 8px Comic Neue, sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText(label, b.x + b.w / 2, b.y + b.h / 2 + 3);
-      ctx.textAlign = "left";
+    const drawEnemy = (e: Enemy) => {
+      const flash = e.hitFlash > 0;
+      ctx.save();
+      if (e.kind === 0) {
+        // Saibaman — green plant fighter
+        ctx.fillStyle = flash ? "#bbf7d0" : "#16a34a";
+        ctx.strokeStyle = "#14532d";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(e.x, e.y, e.r * 0.85, e.r, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#166534";
+        ctx.beginPath();
+        ctx.moveTo(e.x - 4, e.y - e.r);
+        ctx.lineTo(e.x, e.y - e.r - 10);
+        ctx.lineTo(e.x + 4, e.y - e.r);
+        ctx.fill();
+        ctx.fillStyle = "#fef08a";
+        ctx.beginPath();
+        ctx.ellipse(e.x - 4, e.y - 2, 3, 3.5, 0, 0, Math.PI * 2);
+        ctx.ellipse(e.x + 4, e.y - 2, 3, 3.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#111";
+        ctx.beginPath();
+        ctx.arc(e.x - 4, e.y - 2, 1.2, 0, Math.PI * 2);
+        ctx.arc(e.x + 4, e.y - 2, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (e.kind === 1) {
+        // Frieza Force soldier
+        ctx.fillStyle = flash ? "#fecaca" : "#9f1239";
+        ctx.strokeStyle = "#4c0519";
+        ctx.lineWidth = 1.5;
+        roundRect(ctx, e.x - e.r * 0.7, e.y - e.r * 0.5, e.r * 1.4, e.r * 1.3, 4);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#e2e8f0";
+        ctx.beginPath();
+        ctx.ellipse(e.x, e.y - e.r * 0.55, e.r * 0.55, e.r * 0.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#64748b";
+        roundRect(ctx, e.x - e.r * 0.55, e.y - e.r * 0.85, e.r * 1.1, 6, 2);
+        ctx.fill();
+        ctx.fillStyle = "#ef4444";
+        ctx.beginPath();
+        ctx.arc(e.x - 3, e.y - e.r * 0.55, 2, 0, Math.PI * 2);
+        ctx.arc(e.x + 3, e.y - e.r * 0.55, 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // Cell Jr — green spots
+        ctx.fillStyle = flash ? "#d9f99d" : "#65a30d";
+        ctx.strokeStyle = "#365314";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(e.x, e.y, e.r * 0.9, e.r, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#a3e635";
+        ctx.beginPath();
+        ctx.arc(e.x - 5, e.y + 2, 3, 0, Math.PI * 2);
+        ctx.arc(e.x + 4, e.y - 3, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#000";
+        ctx.beginPath();
+        ctx.ellipse(e.x - 4, e.y - 4, 2.5, 3, 0, 0, Math.PI * 2);
+        ctx.ellipse(e.x + 4, e.y - 4, 2.5, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(e.x - 4, e.y - 5, 0.8, 0, Math.PI * 2);
+        ctx.arc(e.x + 4, e.y - 5, 0.8, 0, Math.PI * 2);
+        ctx.fill();
+        // Wing nubs
+        ctx.strokeStyle = "#3f6212";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(e.x - e.r * 0.6, e.y);
+        ctx.quadraticCurveTo(e.x - e.r - 6, e.y - 8, e.x - e.r * 0.4, e.y - 4);
+        ctx.moveTo(e.x + e.r * 0.6, e.y);
+        ctx.quadraticCurveTo(e.x + e.r + 6, e.y - 8, e.x + e.r * 0.4, e.y - 4);
+        ctx.stroke();
+      }
+      ctx.restore();
     };
 
     const tick = () => {
@@ -349,16 +490,19 @@ export default function VegetaPride({ ready, onEnter }: MiniGameProps) {
       if (s.alive) {
         if (--s.spawnIn <= 0) {
           const y = 50 + Math.random() * (s.h - 120);
+          const kind = Math.floor(Math.random() * 3) as 0 | 1 | 2;
+          const baseHp = kind === 2 ? 3 : kind === 1 ? 2 : 1;
           s.enemies.push({
             x: s.w + 20,
             y,
-            vx: -(1.6 + Math.min(2, s.score * 0.003) + Math.random()),
+            vx: -(1.5 + Math.min(2, s.score * 0.003) + Math.random() + kind * 0.2),
             vy: Math.sin(s.frame / 10) * 0.4,
-            hp: s.egoT > 0 ? 2 : 1 + (Math.random() < 0.25 ? 1 : 0),
-            r: 14 + Math.random() * 6,
+            hp: s.egoT > 0 ? Math.max(1, baseHp - 1) : baseHp + (Math.random() < 0.2 ? 1 : 0),
+            r: kind === 2 ? 16 : kind === 1 ? 14 : 12 + Math.random() * 4,
             hitFlash: 0,
+            kind,
           });
-          s.spawnIn = Math.max(18, 42 - Math.min(16, s.score / 60));
+          s.spawnIn = Math.max(16, 40 - Math.min(16, s.score / 60));
         }
 
         for (const e of s.enemies) {
@@ -377,18 +521,24 @@ export default function VegetaPride({ ready, onEnter }: MiniGameProps) {
           for (const e of s.enemies) {
             if (e.hp <= 0) continue;
             if (Math.hypot(b.x - e.x, b.y - e.y) < b.r + e.r) {
-              e.hp -= b.ego ? 2 : 1;
+              e.hp -= b.galick ? 3 : b.ego ? 2 : 1;
               e.hitFlash = 5;
-              b.life = 0;
+              if (!b.galick) b.life = 0;
               if (e.hp <= 0) {
-                const pts = 25 * (s.egoT > 0 ? 1.6 : s.ssjT > 0 ? 1.3 : 1);
+                const pts = (25 + e.kind * 15) * (s.egoT > 0 ? 1.6 : s.ssjT > 0 ? 1.3 : 1);
                 s.score += Math.round(pts);
                 s.pride = Math.min(100, s.pride + (s.egoT > 0 ? 8 : 16));
-                // Ultra Ego: damage taken as pride? gain on KO already; also small heal pride
                 if (s.egoT > 0) s.pride = Math.min(100, s.pride + 4);
                 setScore(s.score);
                 setPride(s.pride);
-                burst(e.x, e.y, b.ego ? "#e879f9" : "#fde047", 12, 3);
+                burst(e.x, e.y, b.ego ? "#e879f9" : b.galick ? "#a78bfa" : "#fde047", 12, 3);
+                if (s.pride >= 100 && s.egoT <= 0 && s.announceT <= 0) {
+                  s.announce = "EGO READY — TAP!";
+                  s.announceT = 32;
+                } else if (s.pride >= 50 && s.ssjT <= 0 && s.egoT <= 0 && s.announceT <= 0) {
+                  s.announce = "SSJ READY — TAP!";
+                  s.announceT = 28;
+                }
               }
             }
           }
@@ -456,27 +606,14 @@ export default function VegetaPride({ ready, onEnter }: MiniGameProps) {
         ctx.fillRect(sx, sy, 2, 2);
       }
 
-      for (const e of s.enemies) {
-        ctx.fillStyle = e.hitFlash > 0 ? "#fecaca" : "#94a3b8";
-        ctx.strokeStyle = "#0f172a";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = "#ef4444";
-        ctx.beginPath();
-        ctx.arc(e.x - 4, e.y - 2, 2, 0, Math.PI * 2);
-        ctx.arc(e.x + 4, e.y - 2, 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      for (const e of s.enemies) drawEnemy(e);
 
       for (const b of s.blasts) {
         ctx.save();
         ctx.globalCompositeOperation = "lighter";
         const g = ctx.createRadialGradient(b.x, b.y, 1, b.x, b.y, b.r + 6);
         g.addColorStop(0, "#fff");
-        g.addColorStop(0.4, b.ego ? "#e879f9" : "#c4b5fd");
+        g.addColorStop(0.4, b.galick ? "#c4b5fd" : b.ego ? "#e879f9" : "#c4b5fd");
         g.addColorStop(1, "transparent");
         ctx.fillStyle = g;
         ctx.beginPath();
@@ -507,9 +644,6 @@ export default function VegetaPride({ ready, onEnter }: MiniGameProps) {
       roundRect(ctx, meterX, 12, meterW, 12, 6);
       ctx.stroke();
 
-      drawBtn(btnSsj(), "SSJ", s.pride >= 50 && s.ssjT <= 0 && s.egoT <= 0, "#eab308");
-      drawBtn(btnEgo(), "EGO", s.pride >= 100 && s.egoT <= 0, "#c026d3");
-
       const hs = hudScale(s.w);
       ctx.fillStyle = "#fde047";
       ctx.strokeStyle = "#000";
@@ -526,18 +660,22 @@ export default function VegetaPride({ ready, onEnter }: MiniGameProps) {
       ctx.fillText(label, 12, s.h - 16);
 
       if (s.announceT > 0) {
-        ctx.fillStyle = "rgba(0,0,0,0.4)";
+        ctx.fillStyle = "rgba(0,0,0,0.45)";
         ctx.fillRect(0, s.h * 0.26, s.w, 40);
-        ctx.fillStyle = s.egoT > 0 ? "#e879f9" : "#facc15";
+        ctx.fillStyle = s.announce.includes("EGO") ? "#e879f9" : s.announce.includes("GALICK") ? "#c4b5fd" : "#facc15";
         ctx.font = `700 ${Math.round(22 * hs)}px Bangers, Impact, sans-serif`;
-        ctx.strokeText(s.announce, s.w / 2 - s.announce.length * 5.5 * hs, s.h * 0.26 + 28);
-        ctx.fillText(s.announce, s.w / 2 - s.announce.length * 5.5 * hs, s.h * 0.26 + 28);
+        ctx.textAlign = "center";
+        ctx.strokeText(s.announce, s.w / 2, s.h * 0.26 + 28);
+        ctx.fillText(s.announce, s.w / 2, s.h * 0.26 + 28);
+        ctx.textAlign = "left";
       }
 
       if (s.alive && s.frame < 100 && s.announceT <= 0) {
         ctx.fillStyle = "rgba(255,255,255,0.7)";
         ctx.font = `700 ${Math.round(12 * hs)}px Comic Neue, sans-serif`;
-        ctx.fillText(s.w < 500 ? "Drag + hold fire!" : "Move to fly · hold/tap to fire · SSJ / EGO", s.w / 2 - (s.w < 500 ? 55 : 150), s.h * 0.2);
+        ctx.textAlign = "center";
+        ctx.fillText(s.w < 500 ? "Drag + tap fire · SSJ/Ego auto!" : "Fly + hold/tap to fire · 50 Pride = SSJ · 100 = Ultra Ego (no buttons)", s.w / 2, s.h * 0.2);
+        ctx.textAlign = "left";
       }
 
       if (!s.alive) {
@@ -560,22 +698,12 @@ export default function VegetaPride({ ready, onEnter }: MiniGameProps) {
       const r = canvas.getBoundingClientRect();
       return { x: ((e.clientX - r.left) / r.width) * state.current.w, y: ((e.clientY - r.top) / r.height) * state.current.h };
     };
-    const hit = (p: { x: number; y: number }, b: { x: number; y: number; w: number; h: number }) =>
-      p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space") {
         e.preventDefault();
         state.current.fireHeld = true;
         fire();
-      }
-      if (e.code === "KeyC") {
-        e.preventDefault();
-        activateSsj();
-      }
-      if (e.code === "KeyV") {
-        e.preventDefault();
-        activateEgo();
       }
       if (e.code === "Enter" && readyRef.current) onEnterRef.current();
     };
@@ -585,17 +713,11 @@ export default function VegetaPride({ ready, onEnter }: MiniGameProps) {
 
     const onPointerMove = (e: PointerEvent) => {
       e.preventDefault();
-      const p = pos(e);
-      if (!hit(p, btnSsj()) && !hit(p, btnEgo())) {
-        target.current = p;
-      }
+      target.current = pos(e);
     };
     const onPointerDown = (e: PointerEvent) => {
       e.preventDefault();
-      const p = pos(e);
-      if (hit(p, btnSsj())) return activateSsj();
-      if (hit(p, btnEgo())) return activateEgo();
-      target.current = p;
+      target.current = pos(e);
       state.current.fireHeld = true;
       fire();
     };
@@ -629,8 +751,8 @@ export default function VegetaPride({ ready, onEnter }: MiniGameProps) {
       ready={ready}
       onEnter={onEnter}
       title="Pride Barrage"
-      tagline="Fly & fire Galick blasts · Super Saiyan · Ultra Ego"
-      mobileTagline="Drag to fly · hold to fire"
+      tagline="Fly & fire · Super Saiyan & Ultra Ego on tap (no buttons)"
+      mobileTagline="Drag + tap · SSJ/Ego auto"
       strip="OVER 9000"
       stripHint={form === "ultraEgo" ? "Ultra Ego!" : form === "ssj" ? "Super Saiyan!" : `Pride ${pride}%`}
       loadingLabel="Prince powering up… loading portfolio"
@@ -642,7 +764,7 @@ export default function VegetaPride({ ready, onEnter }: MiniGameProps) {
       secondaryValue={pride}
       best={best}
       alive={alive}
-      aliveHint="Fly with pointer, hold to fire. C/SSJ (50) · V/EGO (100)."
+      aliveHint="Fly with pointer, hold/tap to fire. At 50 Pride next tap = Super Saiyan. At 100 = Ultra Ego. Galick Gun can fire in SSJ."
       deadHint="Pride broken! Tap to rise again."
       canvasRef={canvasRef}
       ariaLabel="Vegeta pride barrage mini-game"

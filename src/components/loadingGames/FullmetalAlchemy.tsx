@@ -33,6 +33,7 @@ type Spike = {
   max: number;
   stone: boolean;
   mode: AlchemyMode;
+  wallHp?: number; // bind walls have durability
 };
 
 type Spear = {
@@ -48,7 +49,7 @@ type Particle = { x: number; y: number; vx: number; vy: number; life: number; ma
 
 /**
  * Fullmetal Alchemist — multi-alchemy combat:
- * SPIKE (earth) · SPEAR (carbon) · BIND (seal)
+ * SPIKE (earth) · SPEAR (carbon) · BIND (earth wall / seal)
  * Place arrays with tap; Space detonates early.
  * ALPH (50) summons Alphonse · STONE (100) Philosopher's Stone chain.
  */
@@ -259,28 +260,48 @@ export default function FullmetalAlchemy({ ready, onEnter }: MiniGameProps) {
     const eruptSpike = (x: number, stone: boolean, mode: AlchemyMode) => {
       const s = state.current;
       const gY = ground();
+      if (mode === "bind") {
+        // Earth wall — blocks and seals foes
+        s.spikes.push({
+          x,
+          h: stone ? 110 : 78,
+          life: stone ? 280 : 200,
+          max: stone ? 280 : 200,
+          stone,
+          mode: "bind",
+          wallHp: stone ? 8 : 5,
+        });
+        burst(x, gY - 40, stone ? "#fbbf24" : "#a78bfa", stone ? 22 : 16, 3.5);
+        burst(x, gY - 10, "#78716c", 12, 2.5);
+        s.shake = Math.max(s.shake, stone ? 10 : 6);
+        s.announce = stone ? "STONE WALL!" : "EARTH WALL!";
+        s.announceT = 32;
+        const reach = stone ? 40 : 30;
+        for (const f of s.foes) {
+          if (f.hp <= 0) continue;
+          if (Math.abs(f.x - x) > reach + f.w / 2) continue;
+          f.bindT = Math.max(f.bindT, stone ? 140 : 100);
+          hurtFoe(f, stone ? 2 : 1, 8, 8);
+          burst(f.x, gY - 20, "#a78bfa", 10, 2);
+        }
+        return;
+      }
       s.spikes.push({
         x,
-        h: stone ? 95 : mode === "bind" ? 40 : 60,
+        h: stone ? 95 : 60,
         life: stone ? 22 : 16,
         max: stone ? 22 : 16,
         stone,
         mode,
       });
-      burst(x, gY - 20, stone ? "#fbbf24" : mode === "bind" ? "#a78bfa" : "#38bdf8", stone ? 18 : 12, 3);
+      burst(x, gY - 20, stone ? "#fbbf24" : "#38bdf8", stone ? 18 : 12, 3);
       s.shake = Math.max(s.shake, stone ? 10 : 4);
 
-      const reach = stone ? 44 : mode === "bind" ? 32 : 28;
+      const reach = stone ? 44 : 28;
       for (const f of s.foes) {
         if (f.hp <= 0) continue;
         if (Math.abs(f.x - x) > reach + f.w / 2) continue;
-        if (mode === "bind" && !stone) {
-          f.bindT = Math.max(f.bindT, 90);
-          hurtFoe(f, 1, 6, 5);
-          burst(f.x, gY - 20, "#a78bfa", 10, 2);
-        } else {
-          hurtFoe(f, stone ? 4 : 2, stone ? 16 : 10, stone ? 15 : 0);
-        }
+        hurtFoe(f, stone ? 4 : 2, stone ? 16 : 10, stone ? 15 : 0);
       }
     };
 
@@ -680,7 +701,31 @@ export default function FullmetalAlchemy({ ready, onEnter }: MiniGameProps) {
           } else {
             f.speed = f.baseSpeed;
           }
-          f.x -= f.speed * (s.stoneT > 0 ? 0.7 : 1);
+          // Bind walls block advance
+          let blocked = false;
+          for (const w of s.spikes) {
+            if (w.mode !== "bind" || (w.wallHp ?? 0) <= 0) continue;
+            if (f.x - f.w / 2 <= w.x + 14 && f.x + f.w / 2 >= w.x - 14) {
+              blocked = true;
+              f.x = w.x + 14 + f.w / 2;
+              f.bindT = Math.max(f.bindT, 20);
+              if (s.frame % 12 === 0) {
+                w.wallHp = (w.wallHp ?? 1) - 1;
+                f.hp -= 1;
+                f.hitFlash = 5;
+                burst(w.x, gY - 30, "#a78bfa", 4, 2);
+                if (f.hp <= 0) scoreKill(f, 5);
+                if ((w.wallHp ?? 0) <= 0) {
+                  w.life = 0;
+                  burst(w.x, gY - 40, "#78716c", 16, 3);
+                  s.announce = "WALL BROKEN";
+                  s.announceT = 24;
+                }
+              }
+              break;
+            }
+          }
+          if (!blocked) f.x -= f.speed * (s.stoneT > 0 ? 0.7 : 1);
           if (f.hitFlash > 0) f.hitFlash--;
 
           // Homunculus regen unless bound
@@ -749,9 +794,57 @@ export default function FullmetalAlchemy({ ready, onEnter }: MiniGameProps) {
 
       for (const sp of s.spikes) {
         const grow = 1 - sp.life / sp.max;
+        if (sp.mode === "bind") {
+          // Alchemy earth wall
+          const rise = Math.min(1, grow * 4);
+          const hh = sp.h * rise;
+          const alpha = Math.min(1, sp.life / 40);
+          ctx.save();
+          ctx.globalAlpha = 0.55 + alpha * 0.45;
+          const wall = ctx.createLinearGradient(sp.x, gY - hh, sp.x, gY);
+          wall.addColorStop(0, sp.stone ? "#fbbf24" : "#a78bfa");
+          wall.addColorStop(0.35, sp.stone ? "#b45309" : "#6d28d9");
+          wall.addColorStop(1, "#44403c");
+          ctx.fillStyle = wall;
+          ctx.strokeStyle = sp.stone ? "#fde68a" : "#c4b5fd";
+          ctx.lineWidth = 2;
+          const hw = 16;
+          roundRect(ctx, sp.x - hw, gY - hh, hw * 2, hh, 3);
+          ctx.fill();
+          ctx.stroke();
+          // Brick / seal lines
+          ctx.strokeStyle = "rgba(15,23,42,0.35)";
+          ctx.lineWidth = 1;
+          for (let y = gY - hh + 10; y < gY - 4; y += 12) {
+            ctx.beginPath();
+            ctx.moveTo(sp.x - hw + 2, y);
+            ctx.lineTo(sp.x + hw - 2, y);
+            ctx.stroke();
+          }
+          // Transmutation seal
+          ctx.strokeStyle = sp.stone ? "rgba(253,230,138,0.8)" : "rgba(196,181,253,0.85)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(sp.x, gY - hh * 0.55, 10, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(sp.x, gY - hh * 0.55 - 8);
+          ctx.lineTo(sp.x + 7, gY - hh * 0.55 + 5);
+          ctx.lineTo(sp.x - 7, gY - hh * 0.55 + 5);
+          ctx.closePath();
+          ctx.stroke();
+          // HP pips
+          const wh = sp.wallHp ?? 0;
+          for (let i = 0; i < wh; i++) {
+            ctx.fillStyle = "#c4b5fd";
+            ctx.fillRect(sp.x - 12 + i * 5, gY - hh - 8, 4, 3);
+          }
+          ctx.restore();
+          continue;
+        }
         const hh = sp.h * Math.min(1, grow * 2.2);
-        ctx.fillStyle = sp.stone ? "#f59e0b" : sp.mode === "bind" ? "#7c3aed" : "#78716c";
-        ctx.strokeStyle = sp.stone ? "#fde68a" : sp.mode === "bind" ? "#c4b5fd" : "#38bdf8";
+        ctx.fillStyle = sp.stone ? "#f59e0b" : "#78716c";
+        ctx.strokeStyle = sp.stone ? "#fde68a" : "#38bdf8";
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(sp.x - 10, gY);
@@ -760,12 +853,6 @@ export default function FullmetalAlchemy({ ready, onEnter }: MiniGameProps) {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-        if (sp.mode === "bind") {
-          ctx.strokeStyle = "rgba(167,139,250,0.6)";
-          ctx.beginPath();
-          ctx.arc(sp.x, gY - hh * 0.4, 16, 0, Math.PI * 2);
-          ctx.stroke();
-        }
       }
 
       for (const sp of s.spears) {
@@ -1067,7 +1154,7 @@ export default function FullmetalAlchemy({ ready, onEnter }: MiniGameProps) {
       secondaryValue={exchange}
       best={best}
       alive={alive}
-      aliveHint="SPIKE / SPEAR / BIND modes. Tap to place arrays (max 3). Space detonates. Tap near Ed for automail. ALPH (50) · STONE (100). Bind stops Homunculus regen."
+      aliveHint="SPIKE / SPEAR / BIND modes. BIND raises an earth wall that blocks foes. Tap arrays · Space detonates. ALPH (50) · STONE (100)."
       deadHint="Law of Equivalent Exchange… Tap to clap again."
       canvasRef={canvasRef}
       ariaLabel="Fullmetal Alchemist multi-alchemy mini-game"
