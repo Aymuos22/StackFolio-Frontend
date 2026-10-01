@@ -69,6 +69,14 @@ export const customLinkSchema = z.object({
   displayOrder,
 });
 
+export const suggestPortfolioSchema = z.object({
+  text: z
+    .string()
+    .trim()
+    .min(1, "Paste your resume or bio text.")
+    .max(50000, "Text must be at most 50,000 characters."),
+});
+
 export type PortfolioBaseForm = z.infer<typeof portfolioBaseSchema>;
 export type SummaryForm = z.infer<typeof summarySchema>;
 export type ProjectForm = z.infer<typeof projectSchema>;
@@ -76,3 +84,4 @@ export type ExperienceForm = z.infer<typeof experienceSchema>;
 export type CertificationForm = z.infer<typeof certificationSchema>;
 export type TechnicalSkillForm = z.infer<typeof technicalSkillSchema>;
 export type CustomLinkForm = z.infer<typeof customLinkSchema>;
+export type SuggestPortfolioForm = z.infer<typeof suggestPortfolioSchema>;

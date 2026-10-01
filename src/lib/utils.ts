@@ -10,8 +10,20 @@ export function apiErrorMessage(error: unknown, fallback = "Something went wrong
     const data = error.response?.data as unknown;
     if (typeof data === "string" && data.trim()) return data;
     if (data && typeof data === "object") {
-      const maybeMessage = (data as { message?: unknown; error?: unknown }).message ?? (data as { error?: unknown }).error;
-      if (typeof maybeMessage === "string" && maybeMessage.trim()) return maybeMessage;
+      const body = data as { message?: unknown; error?: unknown; fieldErrors?: Record<string, string> | null };
+      const maybeMessage = body.message ?? body.error;
+      let message = typeof maybeMessage === "string" && maybeMessage.trim() ? maybeMessage : "";
+      const fieldErrors = body.fieldErrors;
+      if (fieldErrors && typeof fieldErrors === "object") {
+        const details = Object.entries(fieldErrors)
+          .map(([field, msg]) => `${field}: ${msg}`)
+          .filter(Boolean)
+          .join("; ");
+        if (details) {
+          message = message ? `${message} (${details})` : details;
+        }
+      }
+      if (message) return message;
     }
     if (error.message) return error.message;
   }

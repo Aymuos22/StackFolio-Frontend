@@ -85,3 +85,74 @@ export type ExperiencePayload = Omit<Experience, "id">;
 export type CertificationPayload = Omit<Certification, "id">;
 export type TechnicalSkillPayload = Omit<TechnicalSkill, "id">;
 export type CustomLinkPayload = Omit<CustomLink, "id">;
+
+export type PortfolioSuggestPayload = {
+  text: string;
+};
+
+export type SuggestedProject = {
+  title: string;
+  description: string | null;
+  techStack: string | null;
+  githubUrl: string | null;
+  liveUrl: string | null;
+  displayOrder: number;
+};
+
+export type SuggestedExperience = {
+  companyName: string;
+  jobTitle: string;
+  employmentType: string | null;
+  location: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  currentlyWorking: boolean;
+  description: string | null;
+  displayOrder: number;
+};
+
+export type SuggestedCertification = {
+  name: string;
+  issuingOrganization: string | null;
+  issueDate: string | null;
+  expiryDate: string | null;
+  credentialId: string | null;
+  credentialUrl: string | null;
+  displayOrder: number;
+};
+
+export type SuggestedTechnicalSkill = {
+  skillName: string;
+  category: string | null;
+  displayOrder: number;
+};
+
+export type SuggestedCustomLink = {
+  label: string;
+  url: string;
+  icon: string | null;
+  displayOrder: number;
+};
+
+export type PortfolioSuggestResponse = {
+  fullName: string | null;
+  phone: string | null;
+  publicEmail: string | null;
+  linkedinUrl: string | null;
+  githubUrl: string | null;
+  summary: string | null;
+  projects: SuggestedProject[];
+  experiences: SuggestedExperience[];
+  certifications: SuggestedCertification[];
+  technicalSkills: SuggestedTechnicalSkill[];
+  customLinks: SuggestedCustomLink[];
+};
+
+export type ApiErrorResponse = {
+  timestamp: string;
+  status: number;
+  error: string;
+  message: string;
+  path: string;
+  fieldErrors: Record<string, string> | null;
+};

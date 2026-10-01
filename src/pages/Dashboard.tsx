@@ -48,6 +48,7 @@ import Field from "../components/Field";
 import Modal from "../components/Modal";
 import ProfileImageUploader from "../components/ProfileImageUploader";
 import Spinner from "../components/Spinner";
+import SuggestPortfolioPanel from "../components/SuggestPortfolioPanel";
 import TextareaField from "../components/TextareaField";
 import { useAuth } from "../context/AuthContext";
 import { apiErrorMessage, cn, normalizeOptionalFields, orderByDisplay } from "../lib/utils";
@@ -574,9 +575,11 @@ export default function Dashboard() {
           {!hasPortfolio ? (
             <EmptyState
               title="Create your portfolio"
-              body="The API returned no portfolio for this user. Fill in the details below to create the base record."
+              body="The API returned no portfolio for this user. Fill in the details below to create the base record, or generate a draft with AI."
             />
           ) : null}
+
+          <SuggestPortfolioPanel portfolio={portfolio} onApplied={() => refreshPortfolio()} />
 
           <PortfolioDetailsForm portfolio={portfolio} onSaved={() => refreshPortfolio()} />
 

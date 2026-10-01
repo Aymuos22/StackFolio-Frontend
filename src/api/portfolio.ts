@@ -5,6 +5,8 @@ import type {
   ExperiencePayload,
   Portfolio,
   PortfolioBasePayload,
+  PortfolioSuggestPayload,
+  PortfolioSuggestResponse,
   ProfileImageUploadResponse,
   ProjectPayload,
   SummaryPayload,
@@ -115,4 +117,11 @@ export async function updateCustomLink(customLinkId: number, payload: CustomLink
 
 export async function deleteCustomLink(customLinkId: number) {
   await api.delete(`/api/me/portfolio/custom-links/${customLinkId}`);
+}
+
+export async function suggestPortfolio(payload: PortfolioSuggestPayload) {
+  const { data } = await api.post<PortfolioSuggestResponse>("/api/me/portfolio/suggest", payload, {
+    timeout: 120_000,
+  });
+  return data;
 }
