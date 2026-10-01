@@ -222,6 +222,79 @@ select {
     filter: contrast(1.05) saturate(1.15);
   }
 
+  /* ——— Minimalist public theme ——— */
+  .minimal-page {
+    background:
+      radial-gradient(ellipse at 10% 0%, rgba(28, 25, 23, 0.05), transparent 45%),
+      radial-gradient(ellipse at 90% 10%, rgba(120, 113, 108, 0.08), transparent 40%),
+      linear-gradient(180deg, #fafaf9 0%, #f5f5f4 48%, #eeeee9 100%);
+  }
+
+  .minimal-atmosphere {
+    background-image:
+      linear-gradient(rgba(28, 25, 23, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(28, 25, 23, 0.035) 1px, transparent 1px);
+    background-size: 72px 72px;
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 70%);
+  }
+
+  .minimal-heading {
+    @apply font-display text-xs font-semibold uppercase tracking-[0.28em] text-stone-400;
+  }
+
+  .minimal-link {
+    @apply inline-flex items-center gap-1.5 border-b border-transparent transition hover:border-stone-800;
+  }
+
+  /* ——— Hacker / terminal public theme ——— */
+  .hacker-page {
+    --hacker-bg: #050805;
+    --hacker-fg: #d7ffe8;
+    --hacker-green: #33ff99;
+    --hacker-muted: #7f9f8c;
+    --hacker-border: #1d3a28;
+    color: var(--hacker-fg);
+    background-color: var(--hacker-bg);
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(51, 255, 153, 0.08), transparent 42%),
+      radial-gradient(ellipse at 80% 100%, rgba(0, 180, 120, 0.06), transparent 40%);
+  }
+
+  .hacker-scanlines {
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.14) 0 1px,
+      transparent 1px 3px
+    );
+    mix-blend-mode: multiply;
+    opacity: 0.35;
+  }
+
+  .hacker-grid {
+    background-image:
+      linear-gradient(rgba(51, 255, 153, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(51, 255, 153, 0.05) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  .hacker-frame {
+    border: 1px solid var(--hacker-border);
+    background: rgba(0, 0, 0, 0.45);
+    box-shadow: 0 0 0 1px rgba(51, 255, 153, 0.04), inset 0 0 40px rgba(51, 255, 153, 0.03);
+  }
+
+  .hacker-heading {
+    @apply font-mono text-sm uppercase tracking-[0.28em];
+  }
+
+  .hacker-chip {
+    @apply inline-flex items-center gap-1.5 border border-hacker-border bg-black/40 px-3 py-1.5 font-mono text-xs uppercase tracking-wider text-hacker-green transition hover:border-hacker-green hover:bg-hacker-green/10;
+  }
+
+  .hacker-link {
+    @apply inline-flex items-center gap-1 text-hacker-green underline decoration-hacker-green/40 underline-offset-4 hover:text-white;
+  }
+
   @keyframes fbi-scan {
     0% {
       top: -10%;

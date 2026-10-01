@@ -1,3 +1,7 @@
+export type PortfolioTheme = "comic" | "minimalist" | "dark-tech";
+
+export const DEFAULT_PORTFOLIO_THEME: PortfolioTheme = "comic";
+
 export type PortfolioBasePayload = {
   slug: string;
   fullName: string;
@@ -5,7 +9,7 @@ export type PortfolioBasePayload = {
   publicEmail?: string;
   linkedinUrl?: string;
   githubUrl?: string;
-  theme: string;
+  theme: PortfolioTheme;
   primaryColor: string;
   secondaryColor: string;
 };
@@ -69,6 +73,14 @@ export type Portfolio = PortfolioBasePayload & {
   certifications: Certification[];
   technicalSkills: TechnicalSkill[];
   customLinks: CustomLink[];
+};
+
+/** Create/update portfolio response shape from the API. */
+export type PortfolioSaveResponse = {
+  id: number;
+  slug: string;
+  theme: PortfolioTheme;
+  message?: string;
 };
 
 export type ProfileImageUploadResponse = {

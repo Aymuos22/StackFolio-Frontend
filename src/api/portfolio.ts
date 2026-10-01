@@ -1,10 +1,12 @@
 import { api } from "./client";
+import { normalizePortfolioTheme } from "../lib/portfolioThemes";
 import type {
   CertificationPayload,
   CustomLinkPayload,
   ExperiencePayload,
   Portfolio,
   PortfolioBasePayload,
+  PortfolioSaveResponse,
   PortfolioSuggestPayload,
   PortfolioSuggestResponse,
   ProfileImageUploadResponse,
@@ -13,29 +15,48 @@ import type {
   TechnicalSkillPayload,
 } from "../types/portfolio";
 
+function normalizePortfolio(data: Portfolio): Portfolio {
+  return {
+    ...data,
+    theme: normalizePortfolioTheme(data.theme),
+    projects: data.projects ?? [],
+    experiences: data.experiences ?? [],
+    certifications: data.certifications ?? [],
+    technicalSkills: data.technicalSkills ?? [],
+    customLinks: data.customLinks ?? [],
+  };
+}
+
+function normalizeSaveResponse(data: PortfolioSaveResponse): PortfolioSaveResponse {
+  return {
+    ...data,
+    theme: normalizePortfolioTheme(data.theme),
+  };
+}
+
 export async function getMyPortfolio() {
   const { data } = await api.get<Portfolio>("/api/me/portfolio");
-  return data;
+  return normalizePortfolio(data);
 }
 
 export async function createPortfolio(payload: PortfolioBasePayload) {
-  const { data } = await api.post<Portfolio>("/api/portfolios", payload);
-  return data;
+  const { data } = await api.post<PortfolioSaveResponse>("/api/portfolios", payload);
+  return normalizeSaveResponse(data);
 }
 
 export async function updatePortfolio(payload: PortfolioBasePayload) {
-  const { data } = await api.put<Portfolio>("/api/portfolios", payload);
-  return data;
+  const { data } = await api.put<PortfolioSaveResponse>("/api/portfolios", payload);
+  return normalizeSaveResponse(data);
 }
 
 export async function getPublicPortfolio(slug: string) {
   const { data } = await api.get<Portfolio>(`/api/portfolios/${encodeURIComponent(slug)}`);
-  return data;
+  return normalizePortfolio(data);
 }
 
 export async function updateSummary(payload: SummaryPayload) {
   const { data } = await api.put<Portfolio>("/api/me/portfolio/summary", payload);
-  return data;
+  return normalizePortfolio(data);
 }
 
 export async function uploadProfileImage(file: File) {

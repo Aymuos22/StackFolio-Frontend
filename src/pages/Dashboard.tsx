@@ -51,6 +51,7 @@ import Spinner from "../components/Spinner";
 import SuggestPortfolioPanel from "../components/SuggestPortfolioPanel";
 import TextareaField from "../components/TextareaField";
 import { useAuth } from "../context/AuthContext";
+import { PORTFOLIO_THEMES, normalizePortfolioTheme } from "../lib/portfolioThemes";
 import { apiErrorMessage, cn, normalizeOptionalFields, orderByDisplay } from "../lib/utils";
 import {
   certificationSchema,
@@ -76,6 +77,7 @@ import type {
   Project,
   TechnicalSkill,
 } from "../types/portfolio";
+import { DEFAULT_PORTFOLIO_THEME } from "../types/portfolio";
 
 const portfolioDefaults: PortfolioBaseForm = {
   slug: "",
@@ -84,7 +86,7 @@ const portfolioDefaults: PortfolioBaseForm = {
   publicEmail: "",
   linkedinUrl: "",
   githubUrl: "",
-  theme: "default",
+  theme: DEFAULT_PORTFOLIO_THEME,
   primaryColor: "#2563eb",
   secondaryColor: "#111827",
 };
@@ -324,14 +326,21 @@ function PortfolioDetailsForm({
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<PortfolioBaseForm>({
     resolver: zodResolver(portfolioBaseSchema),
     defaultValues: portfolioDefaults,
   });
 
+  const selectedTheme = watch("theme");
+
   useEffect(() => {
-    reset(portfolio ? { ...portfolioDefaults, ...portfolio } : portfolioDefaults);
+    reset(
+      portfolio
+        ? { ...portfolioDefaults, ...portfolio, theme: normalizePortfolioTheme(portfolio.theme) }
+        : portfolioDefaults,
+    );
   }, [portfolio, reset]);
 
   async function onSubmit(values: PortfolioBaseForm) {
@@ -368,11 +377,35 @@ function PortfolioDetailsForm({
         <Field label="Public email" type="email" registration={register("publicEmail")} error={errors.publicEmail} />
         <Field label="LinkedIn URL" type="url" registration={register("linkedinUrl")} error={errors.linkedinUrl} />
         <Field label="GitHub URL" type="url" registration={register("githubUrl")} error={errors.githubUrl} />
-        <Field label="Theme" registration={register("theme")} error={errors.theme} />
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Primary" type="color" registration={register("primaryColor")} error={errors.primaryColor} />
-          <Field label="Secondary" type="color" registration={register("secondaryColor")} error={errors.secondaryColor} />
+        <div className="lg:col-span-2">
+          <span className="label">Public theme</span>
+          <p className="mt-1 text-sm text-slate-500">Choose how your public portfolio page looks. Saved via portfolio details.</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            {PORTFOLIO_THEMES.map((themeOption) => {
+              const selected = selectedTheme === themeOption.id;
+              return (
+                <label
+                  key={themeOption.id}
+                  className={cn(
+                    "cursor-pointer rounded-lg border p-4 transition",
+                    selected
+                      ? "border-slate-950 bg-slate-950 text-white shadow-sm"
+                      : "border-line bg-white text-slate-800 hover:border-slate-400",
+                  )}
+                >
+                  <input type="radio" value={themeOption.id} className="sr-only" {...register("theme")} />
+                  <span className="block text-sm font-semibold">{themeOption.label}</span>
+                  <span className={cn("mt-1 block text-xs leading-5", selected ? "text-slate-300" : "text-slate-500")}>
+                    {themeOption.description}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          {errors.theme?.message ? <p className="error">{errors.theme.message}</p> : null}
         </div>
+        <Field label="Primary" type="color" registration={register("primaryColor")} error={errors.primaryColor} />
+        <Field label="Secondary" type="color" registration={register("secondaryColor")} error={errors.secondaryColor} />
         <div className="flex flex-col gap-3 sm:flex-row lg:col-span-2">
           <Button type="submit" icon={<Save className="h-4 w-4" />} isLoading={isSubmitting}>
             {portfolio ? "Update details" : "Create portfolio"}
@@ -466,14 +499,7 @@ export default function Dashboard() {
     setIsRefreshing(true);
     try {
       const data = await getMyPortfolio();
-      setPortfolio({
-        ...data,
-        projects: data.projects ?? [],
-        experiences: data.experiences ?? [],
-        certifications: data.certifications ?? [],
-        technicalSkills: data.technicalSkills ?? [],
-        customLinks: data.customLinks ?? [],
-      });
+      setPortfolio(data);
       if (showToast) toast.success("Portfolio refreshed.");
     } catch (error) {
       if (error instanceof AxiosError && error.response?.status === 404) {

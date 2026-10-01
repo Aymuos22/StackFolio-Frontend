@@ -15,6 +15,7 @@ import {
   updatePortfolio,
   updateSummary,
 } from "../api/portfolio";
+import { normalizePortfolioTheme } from "../lib/portfolioThemes";
 import { apiErrorMessage, cn, normalizeOptionalFields } from "../lib/utils";
 import { suggestPortfolioSchema, type SuggestPortfolioForm } from "../schemas/portfolio";
 import type {
@@ -26,6 +27,7 @@ import type {
   SuggestedProject,
   SuggestedTechnicalSkill,
 } from "../types/portfolio";
+import { DEFAULT_PORTFOLIO_THEME } from "../types/portfolio";
 import Button from "./Button";
 import Modal from "./Modal";
 
@@ -204,7 +206,7 @@ export default function SuggestPortfolioPanel({ portfolio, onApplied }: SuggestP
         if (hasProfileFields) {
           await updatePortfolio({
             slug: portfolio.slug,
-            theme: portfolio.theme,
+            theme: normalizePortfolioTheme(portfolio.theme),
             primaryColor: portfolio.primaryColor,
             secondaryColor: portfolio.secondaryColor,
             fullName: nullableString(draft.fullName) ?? portfolio.fullName,
@@ -223,7 +225,7 @@ export default function SuggestPortfolioPanel({ portfolio, onApplied }: SuggestP
             publicEmail: toOptional(draft.publicEmail),
             linkedinUrl: toOptional(draft.linkedinUrl),
             githubUrl: toOptional(draft.githubUrl),
-            theme: "default",
+            theme: DEFAULT_PORTFOLIO_THEME,
             primaryColor: "#2563eb",
             secondaryColor: "#111827",
           }),

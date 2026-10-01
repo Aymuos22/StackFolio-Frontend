@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PORTFOLIO_THEME_IDS } from "../lib/portfolioThemes";
 
 const optionalUrl = z.string().url("Enter a valid URL.").or(z.literal("")).optional();
 const optionalEmail = z.string().email("Enter a valid email.").or(z.literal("")).optional();
@@ -15,7 +16,7 @@ export const portfolioBaseSchema = z.object({
   publicEmail: optionalEmail,
   linkedinUrl: optionalUrl,
   githubUrl: optionalUrl,
-  theme: z.string().min(1, "Theme is required."),
+  theme: z.enum(PORTFOLIO_THEME_IDS, { required_error: "Choose a public theme." }),
   primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a hex color like #2563eb."),
   secondaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a hex color like #111827."),
 });
