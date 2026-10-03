@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode, type RefObject } from "react";
 import { cn } from "../../lib/utils";
-import { DEFAULT_PORTFOLIO_THEME, type PortfolioTheme } from "../../types/portfolio";
+import type { PortfolioTheme } from "../../types/portfolio";
 
 export type ThemeId =
   | "spider"
@@ -45,13 +45,13 @@ export type MiniGameProps = {
   onEnter: () => void;
 };
 
-const LoadingGamePortfolioThemeContext = createContext<PortfolioTheme>(DEFAULT_PORTFOLIO_THEME);
+const LoadingGamePortfolioThemeContext = createContext<PortfolioTheme | null>(null);
 
 export function LoadingGamePortfolioThemeProvider({
   theme,
   children,
 }: {
-  theme: PortfolioTheme;
+  theme: PortfolioTheme | null;
   children: ReactNode;
 }) {
   return (
@@ -89,6 +89,35 @@ type ShellChrome = {
   stripHint: string;
   footerHint: string;
   loadingChip: string;
+};
+
+/** Neutral shell used until the portfolio theme is known — never flash comic as a default. */
+const PENDING_CHROME: ShellChrome = {
+  page: "relative flex min-h-[100svh] flex-col items-center justify-start bg-stone-100 px-3 py-4 text-stone-800 sm:justify-center sm:px-4 sm:py-8",
+  atmosphere: "pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.9),transparent_55%)]",
+  toast: "fixed bottom-4 left-1/2 z-40 w-[min(92vw,28rem)] -translate-x-1/2 border border-stone-300 bg-white px-3 py-3 shadow-soft sm:bottom-6 sm:px-4",
+  toastText: "flex-1 text-xs leading-snug text-stone-600 sm:text-sm",
+  toastDismiss: "shrink-0 text-lg leading-none text-stone-400 hover:text-stone-800",
+  overlay: "fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 px-4 backdrop-blur-[2px]",
+  modal: "w-full max-w-md border border-stone-200 bg-white p-5 shadow-soft sm:p-6",
+  modalEyebrow: "text-[10px] font-medium uppercase tracking-[0.28em] text-stone-400",
+  modalTitle: "mt-3 font-display text-3xl leading-none tracking-tight text-stone-950 sm:text-4xl",
+  modalBody: "mt-3 text-sm leading-relaxed text-stone-600 sm:text-base",
+  secondaryBtn: "flex-1 border border-stone-300 bg-white px-4 py-3 text-sm font-semibold tracking-wide text-stone-800",
+  primaryBtn: "flex-1 px-4 py-3 text-sm font-semibold tracking-wide text-white",
+  statusCaption: "inline-block max-w-full truncate text-[10px] font-medium uppercase tracking-[0.28em] text-stone-400 sm:text-xs",
+  title: "mt-2 font-display text-[2rem] leading-none tracking-tight text-stone-950 sm:text-5xl",
+  tagline: "mt-1 text-xs text-stone-500 sm:text-sm",
+  hudBox: "border border-stone-300 bg-white px-2 py-1.5 text-stone-900 sm:px-3 sm:py-2",
+  hudLabel: "text-[9px] font-medium uppercase tracking-[0.18em] text-stone-400 sm:text-[10px]",
+  hudValue: "font-display text-xl font-semibold leading-none sm:text-2xl",
+  bestBox: "border border-stone-300 bg-stone-200 px-2 py-1.5 text-stone-900 sm:px-3 sm:py-2",
+  panel: "overflow-hidden border border-stone-300 bg-white shadow-soft",
+  stripBar: "flex items-center justify-between gap-2 border-b border-stone-200 bg-stone-900 px-2 py-1.5 text-stone-100 sm:px-3",
+  stripTitle: "text-xs font-semibold tracking-[0.18em] uppercase sm:text-sm",
+  stripHint: "truncate text-[10px] uppercase tracking-[0.16em] text-stone-400 sm:text-xs",
+  footerHint: "text-[11px] uppercase leading-snug tracking-[0.16em] text-stone-400 sm:text-xs",
+  loadingChip: "flex w-full items-center justify-center gap-2 border border-stone-300 bg-white px-3 py-2 text-sm text-stone-600 sm:w-auto",
 };
 
 const SHELL_CHROME: Record<PortfolioTheme, ShellChrome> = {
@@ -254,7 +283,7 @@ export function GameShell({
   ariaLabel,
 }: GameShellProps) {
   const portfolioTheme = useLoadingGamePortfolioTheme();
-  const chrome = SHELL_CHROME[portfolioTheme];
+  const chrome = portfolioTheme ? SHELL_CHROME[portfolioTheme] : PENDING_CHROME;
   const [showToast, setShowToast] = useState(true);
   const [showReadyModal, setShowReadyModal] = useState(false);
   const [keptPlaying, setKeptPlaying] = useState(false);
@@ -282,9 +311,9 @@ export function GameShell({
   const enterBtnClass =
     portfolioTheme === "comic"
       ? cn(chrome.primaryBtn, "w-full px-5 py-3 text-xl sm:w-auto sm:text-2xl")
-      : portfolioTheme === "minimalist"
-        ? cn(chrome.primaryBtn, "w-full px-5 py-3 sm:w-auto")
-        : cn(chrome.primaryBtn, "w-full justify-center px-5 py-3 sm:w-auto");
+      : portfolioTheme === "dark-tech"
+        ? cn(chrome.primaryBtn, "w-full justify-center px-5 py-3 sm:w-auto")
+        : cn(chrome.primaryBtn, "w-full px-5 py-3 sm:w-auto");
 
   return (
     <main className={chrome.page}>
@@ -325,9 +354,9 @@ export function GameShell({
             <h2 id="portfolio-ready-title" className={chrome.modalTitle}>
               {portfolioTheme === "dark-tech"
                 ? "Access granted"
-                : portfolioTheme === "minimalist"
-                  ? "Portfolio ready"
-                  : "Dossier unlocked!"}
+                : portfolioTheme === "comic"
+                  ? "Dossier unlocked!"
+                  : "Portfolio ready"}
             </h2>
             <p className={chrome.modalBody}>
               Your portfolio finished loading. Keep playing this mini-game, or head in now — if you leave, you&apos;ll
@@ -363,13 +392,19 @@ export function GameShell({
             <p className={cn(chrome.tagline, "sm:hidden")}>{mobileTagline ?? tagline}</p>
           </div>
           <div className="grid grid-cols-3 gap-2 sm:flex">
-            <div className={chrome.hudBox} style={portfolioTheme === "comic" ? { backgroundColor: accent } : undefined}>
+            <div
+              className={chrome.hudBox}
+              style={portfolioTheme === "comic" ? { backgroundColor: accent } : undefined}
+            >
               <p className={chrome.hudLabel}>Score</p>
               <p className={chrome.hudValue} style={portfolioTheme !== "comic" ? { color: accent } : undefined}>
                 {score}
               </p>
             </div>
-            <div className={chrome.hudBox} style={portfolioTheme === "comic" ? { backgroundColor: accent2 } : undefined}>
+            <div
+              className={chrome.hudBox}
+              style={portfolioTheme === "comic" ? { backgroundColor: accent2 } : undefined}
+            >
               <p className={chrome.hudLabel}>{secondaryLabel}</p>
               <p className={chrome.hudValue} style={portfolioTheme !== "comic" ? { color: accent2 } : undefined}>
                 {secondaryValue}

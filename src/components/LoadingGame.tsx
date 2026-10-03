@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import type { PortfolioTheme } from "../types/portfolio";
-import { DEFAULT_PORTFOLIO_THEME } from "../types/portfolio";
 import BatmanAlleyBrawl from "./loadingGames/BatmanAlleyBrawl";
 import FullmetalAlchemy from "./loadingGames/FullmetalAlchemy";
 import GojoVsSukuna from "./loadingGames/GojoVsSukuna";
@@ -19,8 +18,11 @@ import WolverineClaws from "./loadingGames/WolverineClaws";
 type LoadingGameProps = {
   ready?: boolean;
   onEnter: () => void;
-  /** Public portfolio theme — styles the shared game shell chrome. */
-  portfolioTheme?: PortfolioTheme;
+  /**
+   * Public portfolio theme for shell chrome.
+   * `null` = theme not known yet (neutral pending shell — never assume comic).
+   */
+  portfolioTheme?: PortfolioTheme | null;
 };
 
 /**
@@ -29,7 +31,7 @@ type LoadingGameProps = {
 export default function LoadingGame({
   ready = false,
   onEnter,
-  portfolioTheme = DEFAULT_PORTFOLIO_THEME,
+  portfolioTheme = null,
 }: LoadingGameProps) {
   const theme = useMemo(() => pickTheme(), []);
 

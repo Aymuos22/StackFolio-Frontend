@@ -51,7 +51,7 @@ import Spinner from "../components/Spinner";
 import SuggestPortfolioPanel from "../components/SuggestPortfolioPanel";
 import TextareaField from "../components/TextareaField";
 import { useAuth } from "../context/AuthContext";
-import { PORTFOLIO_THEMES, normalizePortfolioTheme } from "../lib/portfolioThemes";
+import { PORTFOLIO_THEMES, normalizePortfolioTheme, writeCachedPortfolioTheme } from "../lib/portfolioThemes";
 import { apiErrorMessage, cn, normalizeOptionalFields, orderByDisplay } from "../lib/utils";
 import {
   certificationSchema,
@@ -354,6 +354,7 @@ function PortfolioDetailsForm({
         await createPortfolio(payload);
         toast.success("Portfolio created.");
       }
+      writeCachedPortfolioTheme(payload.slug, normalizePortfolioTheme(payload.theme));
       await onSaved();
     } catch (error) {
       toast.error(apiErrorMessage(error, "Unable to save portfolio details."));
