@@ -1,4 +1,6 @@
-import { useEffect, useState, type RefObject } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode, type RefObject } from "react";
+import { cn } from "../../lib/utils";
+import { DEFAULT_PORTFOLIO_THEME, type PortfolioTheme } from "../../types/portfolio";
 
 export type ThemeId =
   | "spider"
@@ -41,6 +43,136 @@ export type GameShellProps = {
 export type MiniGameProps = {
   ready: boolean;
   onEnter: () => void;
+};
+
+const LoadingGamePortfolioThemeContext = createContext<PortfolioTheme>(DEFAULT_PORTFOLIO_THEME);
+
+export function LoadingGamePortfolioThemeProvider({
+  theme,
+  children,
+}: {
+  theme: PortfolioTheme;
+  children: ReactNode;
+}) {
+  return (
+    <LoadingGamePortfolioThemeContext.Provider value={theme}>{children}</LoadingGamePortfolioThemeContext.Provider>
+  );
+}
+
+function useLoadingGamePortfolioTheme() {
+  return useContext(LoadingGamePortfolioThemeContext);
+}
+
+type ShellChrome = {
+  page: string;
+  atmosphere: string;
+  toast: string;
+  toastText: string;
+  toastDismiss: string;
+  overlay: string;
+  modal: string;
+  modalEyebrow: string;
+  modalTitle: string;
+  modalBody: string;
+  secondaryBtn: string;
+  primaryBtn: string;
+  statusCaption: string;
+  title: string;
+  tagline: string;
+  hudBox: string;
+  hudLabel: string;
+  hudValue: string;
+  bestBox: string;
+  panel: string;
+  stripBar: string;
+  stripTitle: string;
+  stripHint: string;
+  footerHint: string;
+  loadingChip: string;
+};
+
+const SHELL_CHROME: Record<PortfolioTheme, ShellChrome> = {
+  comic: {
+    page: "comic-page relative flex min-h-[100svh] flex-col items-center justify-start px-3 py-4 sm:justify-center sm:px-4 sm:py-8",
+    atmosphere: "comic-speedlines pointer-events-none fixed inset-0 opacity-50",
+    toast: "fixed bottom-4 left-1/2 z-40 w-[min(92vw,28rem)] -translate-x-1/2 border-4 border-comic-ink bg-comic-cream px-3 py-3 shadow-comic sm:bottom-6 sm:px-4",
+    toastText: "flex-1 font-comic-body text-xs font-bold leading-snug text-comic-ink sm:text-sm",
+    toastDismiss: "shrink-0 font-comic text-lg leading-none text-comic-ink/50 hover:text-comic-ink",
+    overlay: "fixed inset-0 z-50 flex items-center justify-center bg-comic-ink/55 px-4 backdrop-blur-[2px]",
+    modal: "w-full max-w-md border-4 border-comic-ink bg-comic-cream p-5 shadow-comic-pink sm:p-6",
+    modalEyebrow: "comic-caption inline-block -rotate-1 px-2 py-1 text-[10px] font-bold uppercase",
+    modalTitle: "comic-title mt-3 text-3xl leading-none text-comic-ink sm:text-4xl",
+    modalBody: "mt-3 font-comic-body text-sm font-bold leading-snug text-comic-ink/75 sm:text-base",
+    secondaryBtn: "flex-1 border-4 border-comic-ink bg-white px-4 py-3 font-comic text-lg tracking-wide text-comic-ink shadow-comic",
+    primaryBtn: "comic-burst flex-1 px-4 py-3 font-comic text-lg tracking-wide text-white",
+    statusCaption: "comic-caption inline-block max-w-full -rotate-1 truncate px-2 py-1 text-[10px] font-bold uppercase sm:px-3 sm:text-xs",
+    title: "comic-title mt-2 text-[2rem] leading-none text-comic-ink sm:text-5xl",
+    tagline: "mt-1 font-comic-body text-xs font-bold text-comic-ink/70 sm:text-sm",
+    hudBox: "border-4 border-comic-ink px-2 py-1.5 text-white shadow-comic sm:px-3 sm:py-2",
+    hudLabel: "font-comic-body text-[9px] font-bold uppercase opacity-80 sm:text-[10px]",
+    hudValue: "font-comic text-xl leading-none sm:text-2xl",
+    bestBox: "border-4 border-comic-ink bg-comic-yellow px-2 py-1.5 shadow-comic sm:px-3 sm:py-2",
+    panel: "comic-panel overflow-hidden shadow-comic-pink",
+    stripBar: "flex items-center justify-between gap-2 border-b-4 border-comic-ink bg-comic-ink px-2 py-1 text-comic-cream sm:px-3 sm:py-1.5",
+    stripTitle: "font-comic text-sm tracking-wide text-comic-cyan sm:text-lg",
+    stripHint: "truncate font-comic-body text-[10px] font-bold uppercase text-comic-pink sm:text-xs",
+    footerHint: "font-comic-body text-[11px] font-bold uppercase leading-snug tracking-wide text-comic-ink/60 sm:text-xs",
+    loadingChip: "comic-caption flex w-full items-center justify-center gap-2 px-3 py-2 text-sm font-bold sm:w-auto",
+  },
+  minimalist: {
+    page: "minimal-page relative flex min-h-[100svh] flex-col items-center justify-start px-3 py-4 text-stone-900 sm:justify-center sm:px-4 sm:py-8",
+    atmosphere: "minimal-atmosphere pointer-events-none fixed inset-0",
+    toast: "fixed bottom-4 left-1/2 z-40 w-[min(92vw,28rem)] -translate-x-1/2 border border-stone-300 bg-white/95 px-3 py-3 shadow-soft backdrop-blur sm:bottom-6 sm:px-4",
+    toastText: "flex-1 text-xs leading-snug text-stone-600 sm:text-sm",
+    toastDismiss: "shrink-0 text-lg leading-none text-stone-400 hover:text-stone-800",
+    overlay: "fixed inset-0 z-50 flex items-center justify-center bg-stone-950/40 px-4 backdrop-blur-[2px]",
+    modal: "w-full max-w-md border border-stone-200 bg-white p-5 shadow-soft sm:p-6",
+    modalEyebrow: "text-[10px] font-medium uppercase tracking-[0.28em] text-stone-400",
+    modalTitle: "mt-3 font-serif text-3xl leading-none tracking-tight text-stone-950 sm:text-4xl",
+    modalBody: "mt-3 text-sm leading-relaxed text-stone-600 sm:text-base",
+    secondaryBtn: "flex-1 border border-stone-300 bg-white px-4 py-3 font-display text-sm font-semibold tracking-wide text-stone-800 transition hover:border-stone-500",
+    primaryBtn: "flex-1 px-4 py-3 font-display text-sm font-semibold tracking-wide text-white transition hover:opacity-90",
+    statusCaption: "inline-block max-w-full truncate text-[10px] font-medium uppercase tracking-[0.28em] text-stone-400 sm:text-xs",
+    title: "mt-2 font-serif text-[2rem] leading-none tracking-tight text-stone-950 sm:text-5xl",
+    tagline: "mt-1 text-xs text-stone-500 sm:text-sm",
+    hudBox: "border border-stone-300 bg-stone-950 px-2 py-1.5 text-white sm:px-3 sm:py-2",
+    hudLabel: "font-display text-[9px] font-medium uppercase tracking-[0.18em] opacity-70 sm:text-[10px]",
+    hudValue: "font-display text-xl font-semibold leading-none sm:text-2xl",
+    bestBox: "border border-stone-300 bg-stone-100 px-2 py-1.5 text-stone-900 sm:px-3 sm:py-2",
+    panel: "overflow-hidden border border-stone-300 bg-white",
+    stripBar: "flex items-center justify-between gap-2 border-b border-stone-200 bg-stone-950 px-2 py-1.5 text-stone-100 sm:px-3",
+    stripTitle: "font-display text-xs font-semibold tracking-[0.18em] uppercase sm:text-sm",
+    stripHint: "truncate text-[10px] uppercase tracking-[0.16em] text-stone-400 sm:text-xs",
+    footerHint: "text-[11px] uppercase leading-snug tracking-[0.16em] text-stone-400 sm:text-xs",
+    loadingChip: "flex w-full items-center justify-center gap-2 border border-stone-300 bg-white px-3 py-2 text-sm text-stone-600 sm:w-auto",
+  },
+  "dark-tech": {
+    page: "hacker-page relative flex min-h-[100svh] flex-col items-center justify-start px-3 py-4 sm:justify-center sm:px-4 sm:py-8",
+    atmosphere: "hacker-scanlines pointer-events-none fixed inset-0 z-0 opacity-40",
+    toast: "fixed bottom-4 left-1/2 z-40 w-[min(92vw,28rem)] -translate-x-1/2 border border-hacker-border bg-black/85 px-3 py-3 shadow-[0_0_24px_rgba(51,255,153,0.08)] sm:bottom-6 sm:px-4",
+    toastText: "flex-1 font-mono text-xs leading-snug text-hacker-muted sm:text-sm",
+    toastDismiss: "shrink-0 font-mono text-lg leading-none text-hacker-muted hover:text-hacker-green",
+    overlay: "fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-[2px]",
+    modal: "hacker-frame w-full max-w-md p-5 sm:p-6",
+    modalEyebrow: "font-mono text-[10px] uppercase tracking-[0.28em] text-hacker-green",
+    modalTitle: "mt-3 font-hacker text-3xl leading-none text-white sm:text-4xl",
+    modalBody: "mt-3 font-mono text-sm leading-relaxed text-hacker-muted sm:text-base",
+    secondaryBtn: "hacker-chip flex-1 !normal-case justify-center px-4 py-3 text-sm",
+    primaryBtn: "flex-1 border border-hacker-green bg-hacker-green/15 px-4 py-3 font-mono text-sm uppercase tracking-wider text-hacker-green transition hover:bg-hacker-green/25",
+    statusCaption: "inline-block max-w-full truncate font-mono text-[10px] uppercase tracking-[0.28em] text-hacker-green sm:text-xs",
+    title: "mt-2 font-hacker text-[2rem] leading-none text-white sm:text-5xl",
+    tagline: "mt-1 font-mono text-xs text-hacker-muted sm:text-sm",
+    hudBox: "hacker-frame px-2 py-1.5 text-hacker-fg sm:px-3 sm:py-2",
+    hudLabel: "font-mono text-[9px] uppercase tracking-[0.18em] text-hacker-muted sm:text-[10px]",
+    hudValue: "font-mono text-xl leading-none text-hacker-green sm:text-2xl",
+    bestBox: "hacker-frame border-hacker-green/40 px-2 py-1.5 text-hacker-fg sm:px-3 sm:py-2",
+    panel: "hacker-frame overflow-hidden",
+    stripBar: "flex items-center justify-between gap-2 border-b border-hacker-border bg-black/60 px-2 py-1.5 sm:px-3",
+    stripTitle: "font-mono text-xs uppercase tracking-[0.2em] text-hacker-green sm:text-sm",
+    stripHint: "truncate font-mono text-[10px] uppercase tracking-wider text-hacker-muted sm:text-xs",
+    footerHint: "font-mono text-[11px] uppercase leading-snug tracking-wider text-hacker-muted sm:text-xs",
+    loadingChip: "flex w-full items-center justify-center gap-2 border border-hacker-border bg-black/50 px-3 py-2 font-mono text-sm text-hacker-muted sm:w-auto",
+  },
 };
 
 export function pickTheme(): ThemeId {
@@ -121,6 +253,8 @@ export function GameShell({
   canvasRef,
   ariaLabel,
 }: GameShellProps) {
+  const portfolioTheme = useLoadingGamePortfolioTheme();
+  const chrome = SHELL_CHROME[portfolioTheme];
   const [showToast, setShowToast] = useState(true);
   const [showReadyModal, setShowReadyModal] = useState(false);
   const [keptPlaying, setKeptPlaying] = useState(false);
@@ -145,29 +279,36 @@ export function GameShell({
     setKeptPlaying(true);
   };
 
+  const enterBtnClass =
+    portfolioTheme === "comic"
+      ? cn(chrome.primaryBtn, "w-full px-5 py-3 text-xl sm:w-auto sm:text-2xl")
+      : portfolioTheme === "minimalist"
+        ? cn(chrome.primaryBtn, "w-full px-5 py-3 sm:w-auto")
+        : cn(chrome.primaryBtn, "w-full justify-center px-5 py-3 sm:w-auto");
+
   return (
-    <main className="comic-page relative flex min-h-[100svh] flex-col items-center justify-start px-3 py-4 sm:justify-center sm:px-4 sm:py-8">
-      <div className="comic-speedlines pointer-events-none fixed inset-0 opacity-50" aria-hidden="true" />
+    <main className={chrome.page}>
+      <div className={chrome.atmosphere} aria-hidden="true" />
+      {portfolioTheme === "dark-tech" ? (
+        <div className="hacker-grid pointer-events-none fixed inset-0 -z-0 opacity-30" aria-hidden="true" />
+      ) : null}
 
       {/* Free-tier toast */}
       {showToast && !showReadyModal && (
-        <div
-          role="status"
-          className="fixed bottom-4 left-1/2 z-40 w-[min(92vw,28rem)] -translate-x-1/2 border-4 border-comic-ink bg-comic-cream px-3 py-3 shadow-comic sm:bottom-6 sm:px-4"
-        >
+        <div role="status" className={chrome.toast}>
           <div className="flex items-start gap-3">
             <span
               className="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 animate-pulse rounded-full"
               style={{ backgroundColor: accent }}
               aria-hidden="true"
             />
-            <p className="flex-1 font-comic-body text-xs font-bold leading-snug text-comic-ink sm:text-sm">
+            <p className={chrome.toastText}>
               This app is deployed on free tier so it may take some time — but enjoy the game!
             </p>
             <button
               type="button"
               onClick={() => setShowToast(false)}
-              className="shrink-0 font-comic text-lg leading-none text-comic-ink/50 hover:text-comic-ink"
+              className={chrome.toastDismiss}
               aria-label="Dismiss notice"
             >
               ×
@@ -178,36 +319,33 @@ export function GameShell({
 
       {/* Portfolio ready modal */}
       {showReadyModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-comic-ink/55 px-4 backdrop-blur-[2px]"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="portfolio-ready-title"
-        >
-          <div className="w-full max-w-md border-4 border-comic-ink bg-comic-cream p-5 shadow-comic-pink sm:p-6">
-            <p className="comic-caption inline-block -rotate-1 px-2 py-1 text-[10px] font-bold uppercase">
-              Portfolio ready
-            </p>
-            <h2 id="portfolio-ready-title" className="comic-title mt-3 text-3xl leading-none text-comic-ink sm:text-4xl">
-              Dossier unlocked!
+        <div className={chrome.overlay} role="dialog" aria-modal="true" aria-labelledby="portfolio-ready-title">
+          <div className={chrome.modal}>
+            <p className={chrome.modalEyebrow}>Portfolio ready</p>
+            <h2 id="portfolio-ready-title" className={chrome.modalTitle}>
+              {portfolioTheme === "dark-tech"
+                ? "Access granted"
+                : portfolioTheme === "minimalist"
+                  ? "Portfolio ready"
+                  : "Dossier unlocked!"}
             </h2>
-            <p className="mt-3 font-comic-body text-sm font-bold leading-snug text-comic-ink/75 sm:text-base">
+            <p className={chrome.modalBody}>
               Your portfolio finished loading. Keep playing this mini-game, or head in now — if you leave, you&apos;ll
               go straight to the portfolio.
             </p>
             <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:gap-3">
-              <button
-                type="button"
-                onClick={keepPlaying}
-                className="flex-1 border-4 border-comic-ink bg-white px-4 py-3 font-comic text-lg tracking-wide text-comic-ink shadow-comic"
-              >
+              <button type="button" onClick={keepPlaying} className={chrome.secondaryBtn}>
                 Keep playing
               </button>
               <button
                 type="button"
                 onClick={onEnter}
-                className="comic-burst flex-1 px-4 py-3 font-comic text-lg tracking-wide text-white"
-                style={{ backgroundColor: accent }}
+                className={chrome.primaryBtn}
+                style={
+                  portfolioTheme === "dark-tech"
+                    ? { borderColor: accent, color: accent }
+                    : { backgroundColor: accent }
+                }
               >
                 Open portfolio →
               </button>
@@ -219,33 +357,35 @@ export function GameShell({
       <div className="relative z-10 w-full max-w-3xl">
         <div className="mb-3 flex flex-col gap-3 sm:mb-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <p className="comic-caption inline-block max-w-full -rotate-1 truncate px-2 py-1 text-[10px] font-bold uppercase sm:px-3 sm:text-xs">
-              {ready ? readyLabel : loadingLabel}
-            </p>
-            <h1 className="comic-title mt-2 text-[2rem] leading-none text-comic-ink sm:text-5xl">{title}</h1>
-            <p className="mt-1 hidden font-comic-body text-sm font-bold text-comic-ink/70 sm:block">{tagline}</p>
-            <p className="mt-1 font-comic-body text-xs font-bold text-comic-ink/70 sm:hidden">{mobileTagline ?? tagline}</p>
+            <p className={chrome.statusCaption}>{ready ? readyLabel : loadingLabel}</p>
+            <h1 className={chrome.title}>{title}</h1>
+            <p className={cn(chrome.tagline, "hidden sm:block")}>{tagline}</p>
+            <p className={cn(chrome.tagline, "sm:hidden")}>{mobileTagline ?? tagline}</p>
           </div>
           <div className="grid grid-cols-3 gap-2 sm:flex">
-            <div className="border-4 border-comic-ink px-2 py-1.5 text-white shadow-comic sm:px-3 sm:py-2" style={{ backgroundColor: accent }}>
-              <p className="font-comic-body text-[9px] font-bold uppercase opacity-80 sm:text-[10px]">Score</p>
-              <p className="font-comic text-xl leading-none sm:text-2xl">{score}</p>
+            <div className={chrome.hudBox} style={portfolioTheme === "comic" ? { backgroundColor: accent } : undefined}>
+              <p className={chrome.hudLabel}>Score</p>
+              <p className={chrome.hudValue} style={portfolioTheme !== "comic" ? { color: accent } : undefined}>
+                {score}
+              </p>
             </div>
-            <div className="border-4 border-comic-ink px-2 py-1.5 text-white shadow-comic sm:px-3 sm:py-2" style={{ backgroundColor: accent2 }}>
-              <p className="font-comic-body text-[9px] font-bold uppercase opacity-80 sm:text-[10px]">{secondaryLabel}</p>
-              <p className="font-comic text-xl leading-none sm:text-2xl">{secondaryValue}</p>
+            <div className={chrome.hudBox} style={portfolioTheme === "comic" ? { backgroundColor: accent2 } : undefined}>
+              <p className={chrome.hudLabel}>{secondaryLabel}</p>
+              <p className={chrome.hudValue} style={portfolioTheme !== "comic" ? { color: accent2 } : undefined}>
+                {secondaryValue}
+              </p>
             </div>
-            <div className="border-4 border-comic-ink bg-comic-yellow px-2 py-1.5 shadow-comic sm:px-3 sm:py-2">
-              <p className="font-comic-body text-[9px] font-bold uppercase sm:text-[10px]">Best</p>
-              <p className="font-comic text-xl leading-none sm:text-2xl">{best}</p>
+            <div className={chrome.bestBox}>
+              <p className={chrome.hudLabel}>Best</p>
+              <p className={chrome.hudValue}>{best}</p>
             </div>
           </div>
         </div>
 
-        <div className="comic-panel overflow-hidden shadow-comic-pink">
-          <div className="flex items-center justify-between gap-2 border-b-4 border-comic-ink bg-comic-ink px-2 py-1 text-comic-cream sm:px-3 sm:py-1.5">
-            <span className="font-comic text-sm tracking-wide text-comic-cyan sm:text-lg">{strip}</span>
-            <span className="truncate font-comic-body text-[10px] font-bold uppercase text-comic-pink sm:text-xs">{stripHint}</span>
+        <div className={chrome.panel}>
+          <div className={chrome.stripBar}>
+            <span className={chrome.stripTitle}>{strip}</span>
+            <span className={chrome.stripHint}>{stripHint}</span>
           </div>
           <canvas
             ref={canvasRef as RefObject<HTMLCanvasElement>}
@@ -257,21 +397,23 @@ export function GameShell({
         </div>
 
         <div className="mt-4 flex flex-col gap-3 sm:mt-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <p className="font-comic-body text-[11px] font-bold uppercase leading-snug tracking-wide text-comic-ink/60 sm:text-xs">
-            {alive ? aliveHint : deadHint}
-          </p>
+          <p className={chrome.footerHint}>{alive ? aliveHint : deadHint}</p>
 
           {ready ? (
             <button
               type="button"
               onClick={onEnter}
-              className="comic-burst w-full px-5 py-3 font-comic text-xl tracking-wide text-white sm:w-auto sm:text-2xl"
-              style={{ backgroundColor: accent }}
+              className={enterBtnClass}
+              style={
+                portfolioTheme === "dark-tech"
+                  ? { borderColor: accent, color: accent }
+                  : { backgroundColor: accent }
+              }
             >
               Enter portfolio →
             </button>
           ) : (
-            <div className="comic-caption flex w-full items-center justify-center gap-2 px-3 py-2 text-sm font-bold sm:w-auto">
+            <div className={chrome.loadingChip}>
               <span className="inline-block h-2 w-2 animate-pulse rounded-full" style={{ backgroundColor: accent }} />
               Loading portfolio…
             </div>

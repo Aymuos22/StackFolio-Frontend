@@ -49,6 +49,7 @@ export default function PublicPortfolio() {
       <LoadingGame
         ready={!isLoading && Boolean(portfolio)}
         onEnter={() => setShowLoadingGame(false)}
+        portfolioTheme={portfolio ? normalizePortfolioTheme(portfolio.theme) : undefined}
       />
     );
   }
